@@ -1,0 +1,1208 @@
+  </script>
+
+  <dialog id="introDialog" aria-labelledby="introTitle" aria-describedby="introLede">
+    <div class="intro-shell">
+      <div class="intro-glow" aria-hidden="true"></div>
+      <div class="intro-content">
+        <div class="intro-brand">
+          <div class="intro-mark" aria-hidden="true"><i class="fa-solid fa-bone"></i></div>
+          <div>
+            <p class="intro-eyebrow">Three-plane spine modeling workspace</p>
+            <h1 id="introTitle">DeformitySim</h1>
+          </div>
+        </div>
+
+        <p class="intro-lede" id="introLede">An interactive research and teaching environment for spinal deformity. Author a three-plane case, model level-specific corrections with catalog-dimensioned implants, and inspect the modeled result on CT-derived reference anatomy.</p>
+
+        <ul class="intro-features">
+          <li>
+            <span class="intro-feature-icon" aria-hidden="true"><i class="fa-solid fa-cube"></i></span>
+            <strong>Three-plane case authoring</strong>
+            <span>Sagittal, coronal, and axial inputs drive a live kinematic spine from skull to feet.</span>
+          </li>
+          <li>
+            <span class="intro-feature-icon" aria-hidden="true"><i class="fa-solid fa-lightbulb"></i></span>
+            <strong>Evidence-linked suggested fixes</strong>
+            <span>Unranked construct scenarios matched to the case, each with its supporting study and limitations.</span>
+          </li>
+          <li>
+            <span class="intro-feature-icon" aria-hidden="true"><i class="fa-solid fa-x-ray"></i></span>
+            <strong>Local radiograph landmarks</strong>
+            <span>Experimental in-browser corridor and endplate detection on standing images. Nothing leaves the device.</span>
+          </li>
+        </ul>
+
+        <div class="intro-actions">
+          <button type="button" class="intro-button primary" id="introStartDemo">
+            <span class="intro-button-icon" aria-hidden="true">▶</span>
+            <span class="intro-button-copy"><strong>Start guided demo</strong><small>Auto-plays deformities &amp; construct fixes</small></span>
+          </button>
+          <button type="button" class="intro-button" id="introExplore">
+            <span class="intro-button-copy"><strong>Explore on my own</strong><small>Jump straight into the workspace</small></span>
+          </button>
+        </div>
+
+        <p class="intro-disclaimer"><i class="fa-solid fa-shield-heart" aria-hidden="true"></i> <span><strong>Research and education prototype — not a medical device.</strong> It does not diagnose, recommend treatment, or predict patient-specific outcomes. Reference anatomy is composite, not one patient. Do not enter identifiable patient information.</span></p>
+        <p class="intro-version"><span class="build-badge" title="Open-source alpha release: expect rough edges and report issues">Alpha</span> Model <span id="introVersion">v0.23.0</span> · build <span id="introBuild">alpha-2026-09-27.1</span> · runs fully offline in this browser</p>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="showcaseDialog" aria-labelledby="showcaseHeading">
+    <div class="dialog-head">
+      <div>
+        <h2 id="showcaseHeading">Pre-op vs modeled post-op</h2>
+        <p id="showcaseSubtitle">Summary of the authored case, the construct applied, and the modeled response.</p>
+      </div>
+      <button type="button" class="lab-button" id="closeShowcase">Close</button>
+    </div>
+    <div class="dialog-body showcase-body">
+      <div id="showcaseSuppressed" class="clinical-notice" hidden></div>
+      <section class="showcase-section">
+        <h3>Alignment</h3>
+        <div class="showcase-grid" id="showcaseAlignment"></div>
+        <p class="showcase-note showcase-caveat" id="showcaseDomainNote" hidden></p>
+      </section>
+      <section class="showcase-section">
+        <h3>Construct <span class="showcase-count" id="showcaseConstructCount">0</span></h3>
+        <ol class="showcase-construct" id="showcaseConstruct"></ol>
+      </section>
+      <section class="showcase-section">
+        <h3>Modeled gait response</h3>
+        <div class="showcase-grid" id="showcaseGait"></div>
+        <p class="showcase-note showcase-caveat" id="showcaseGaitCaveat" hidden></p>
+        <p class="showcase-note">Linear cross-sectional interpolation between published cohort means, indexed by authored pelvic tilt. It is not a causal treatment response or patient-specific prediction; no forces, loads, or muscle activity are modeled.</p>
+      </section>
+      <p class="showcase-note showcase-footer">Educational model. Not surgical planning, not a prediction of achieved correction, and not patient-specific.</p>
+    </div>
+  </dialog>
+
+  <div class="demo-bar" id="demoBar" hidden aria-label="Guided demo controls">
+    <div class="demo-bar-progress" id="demoProgress" aria-hidden="true"><span id="demoProgressFill"></span></div>
+    <div class="demo-bar-inner">
+      <div class="demo-caption" role="status" aria-live="polite">
+        <span class="demo-chapter" id="demoChapter">Chapter 1 / 10</span>
+        <strong id="demoTitle">Reference anatomy</strong>
+        <p id="demoBody">Loading the guided demo…</p>
+      </div>
+      <div class="demo-controls">
+        <button type="button" class="demo-ctrl" id="demoPrev" aria-label="Previous demo chapter">◀</button>
+        <button type="button" class="demo-ctrl primary" id="demoPlayPause" aria-label="Pause demo">❚❚</button>
+        <button type="button" class="demo-ctrl" id="demoNext" aria-label="Next demo chapter">▶</button>
+        <button type="button" class="demo-ctrl exit" id="demoExit">Exit demo</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-shell" data-workflow-step="1">
+    <header class="app-header" aria-label="Application header">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><i class="fa-solid fa-bone"></i></div>
+        <div class="brand-copy">
+          <p class="eyebrow">Three-plane spine modeling workspace</p>
+          <h1>DeformitySim <span class="build-badge" id="buildBadge" title="Open-source alpha release (model v0.23.0, build alpha-2026-09-27.1)">Alpha</span></h1>
+          <p class="brand-subtitle">Pre-Op / Modeled Post-Op Anatomy &amp; Alignment Research Simulator</p>
+        </div>
+      </div>
+
+      <div class="metrics-wrap" aria-label="Alignment metrics for selected view">
+        <div class="viewing-label">
+          <span>Viewing</span>
+          <strong id="headerViewLabel">Pre-Op</strong>
+        </div>
+
+        <div class="metric-card" data-testid="mismatch-metric">
+          <div><div class="metric-label">PI–LL</div><div class="metric-context">Mismatch</div></div>
+          <div class="metric-value" id="metricMismatch">+0°</div>
+        </div>
+
+        <div class="metric-card" data-testid="sva-metric">
+          <div><div class="metric-label">C7 SVA input</div><div class="metric-context" id="metricSvaContext">Optional measured · cm</div></div>
+          <div class="metric-value" id="metricSva">—</div>
+        </div>
+
+        <div class="metric-card status-metric" data-testid="status-metric">
+          <div><div class="metric-label">Reference modifiers</div><div class="metric-context">SRS–Schwab bands*</div></div>
+          <div class="modifier-bands" id="modifierBands" aria-label="PI–LL grade 0, measured SVA unavailable, pelvic tilt grade plus">
+            <span class="modifier-band" id="modifierMismatch" data-grade="0"><small>PI–LL</small><strong>0</strong></span>
+            <span class="modifier-band" id="modifierSva" data-grade="na"><small>SVA</small><strong>—</strong></span>
+            <span class="modifier-band" id="modifierPt" data-grade="+"><small>PT</small><strong>+</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="case-actions" role="group" aria-label="Case history and case file">
+        <button class="help-button case-history-button" id="undoCase" type="button" disabled aria-label="Undo the last case edit" title="Undo (Ctrl+Z)"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>
+        <button class="help-button case-history-button" id="redoCase" type="button" disabled aria-label="Redo the case edit" title="Redo (Ctrl+Shift+Z)"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i></button>
+        <div class="case-file-wrap">
+          <button class="help-button" id="caseFileButton" type="button" aria-expanded="false" aria-controls="caseFileMenu" aria-label="Case file: save, open, or copy a case summary" title="Case file: save, open, copy summary"><i class="fa-solid fa-folder-open" aria-hidden="true"></i></button>
+          <div class="case-file-menu" id="caseFileMenu" hidden>
+            <button type="button" class="case-file-item case-file-history" id="undoCaseMenu" disabled><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>Undo</span></button>
+            <button type="button" class="case-file-item case-file-history" id="redoCaseMenu" disabled><i class="fa-solid fa-rotate-right" aria-hidden="true"></i><span>Redo</span></button>
+            <button type="button" class="case-file-item" id="saveCaseButton"><i class="fa-solid fa-download" aria-hidden="true"></i><span>Save case file (.json)</span></button>
+            <button type="button" class="case-file-item" id="openCaseButton"><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>Open case file…</span></button>
+            <button type="button" class="case-file-item" id="copyCaseSummaryButton"><i class="fa-solid fa-copy" aria-hidden="true"></i><span>Copy case summary</span></button>
+            <p class="case-file-status" id="caseFileStatus" role="status" hidden></p>
+            <p class="case-file-note">A case file holds the parameters, procedures, implant selections and assumptions only. Imaging pixels and file names are never saved. You can also drop a .json case file onto the workspace.</p>
+          </div>
+          <input type="file" id="caseFileInput" accept=".json,application/json" hidden aria-label="Open a saved case file">
+        </div>
+      </div>
+      <button class="help-button" id="openShowcase" type="button" aria-haspopup="dialog" aria-controls="showcaseDialog" aria-label="Open the pre-op versus post-op showcase summary" title="Pre-op vs post-op summary">
+        <i class="fa-solid fa-table-list" aria-hidden="true"></i>
+      </button>
+      <button class="help-button" id="openHelp" type="button" aria-label="Open the quick start and model guide" title="Quick start and model guide">
+        <i class="fa-regular fa-circle-question" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <nav class="workflow-nav" aria-label="Scenario workflow">
+      <a href="#patientParameters" data-step="1" data-caption="Define" aria-current="step"><span>1</span><strong>Case inputs</strong></a>
+      <a href="#viewport" data-step="2" data-caption="Inspect"><span>2</span><strong>Review anatomy</strong></a>
+      <a href="#surgicalItinerary" data-step="3" data-caption="Simulate"><span>3</span><strong>Build procedure</strong></a>
+    </nav>
+
+    <!-- The live region is the step copy alone. It used to wrap the whole strip,
+         which meant the scenario metric chips inside it announced on every input
+         event of a slider drag. -->
+    <section class="step-context-bar">
+      <div class="step-context-copy" id="stepContextCopy" aria-live="polite">
+        <span id="stepContextEyebrow">Step 1 of 3</span>
+        <strong id="stepContextTitle">Define the case</strong>
+        <p id="stepContextDescription">Enter the measurements that drive the reference scenario. Advanced three-plane inputs remain available without crowding the primary workflow.</p>
+      </div>
+      <div class="scenario-summary" aria-label="Current scenario summary">
+        <span><small>PI–LL</small><strong id="contextMismatch">+0°</strong></span>
+        <span><small>Primary Cobb</small><strong id="contextCobb">0°</strong></span>
+        <!-- Phones drop the header metric cards to buy the viewport a row back,
+             so the measured SVA echo moves here rather than disappearing. -->
+        <span class="summary-phone-only"><small>SVA</small><strong id="contextSva">—</strong></span>
+        <span><small>Procedures</small><strong id="contextProcedures">0</strong></span>
+        <button type="button" class="suggestion-jump" id="contextSuggestionsJump" hidden aria-label="Open suggested fix scenarios in the procedure panel"><small>Suggested fixes</small><strong id="contextSuggestions">0</strong></button>
+      </div>
+    </section>
+
+    <main class="workspace">
+      <aside class="side-panel patient-panel" id="patientParameters" aria-labelledby="patientHeading" data-panel-tab="cases">
+        <div class="panel-heading">
+          <div>
+            <h2 id="patientHeading">Case parameters</h2>
+            <p>Hypothetical pre-operative measurements</p>
+          </div>
+          <span class="panel-badge"><i class="fa-solid fa-wave-square" aria-hidden="true"></i> Pre-op</span>
+        </div>
+
+        <div class="panel-tabs" role="tablist" aria-label="Case panel sections">
+          <button class="panel-tab" type="button" role="tab" id="patientTabCases" aria-controls="patientParameters" data-panel-target="patient" data-tab="cases" aria-selected="true" tabindex="0">Case entry</button>
+          <button class="panel-tab" type="button" role="tab" id="patientTabLibrary" aria-controls="patientParameters" data-panel-target="patient" data-tab="library" aria-selected="false" tabindex="-1">Examples &amp; import</button>
+        </div>
+
+        <div class="section-kicker">Pelvic &amp; spinal profile</div>
+        <div class="parameter-list">
+          <div class="parameter-row">
+            <div class="parameter-top">
+              <label class="parameter-name" for="piSlider">Pelvic Incidence <abbr title="Hypothetical pelvic-incidence morphology scenario">PI</abbr></label>
+              <output class="parameter-value" id="piValue" for="piSlider"><span>52</span><span>°</span></output>
+            </div>
+            <input id="piSlider" data-param="pi" type="range" min="30" max="80" value="52" step="1" aria-describedby="piExtents">
+            <div class="range-extents" id="piExtents"><span>30°</span><span>80°</span></div>
+          </div>
+
+          <div class="parameter-row">
+            <div class="parameter-top">
+              <label class="parameter-name" for="llSlider">Lumbar Lordosis <abbr title="Lumbar Lordosis">LL</abbr></label>
+              <output class="parameter-value" id="llValue" for="llSlider"><span>48</span><span>°</span></output>
+            </div>
+            <input id="llSlider" data-param="ll" type="range" min="10" max="80" value="48" step="1" aria-describedby="llExtents">
+            <div class="range-extents" id="llExtents"><span>10°</span><span>80°</span></div>
+          </div>
+
+          <div class="parameter-row">
+            <div class="parameter-top">
+              <label class="parameter-name" for="tkSlider">Thoracic Kyphosis <abbr title="Thoracic kyphosis measured as the T4–T12 Cobb angle">TK (T4–T12)</abbr></label>
+              <output class="parameter-value" id="tkValue" for="tkSlider"><span>42</span><span>°</span></output>
+            </div>
+            <input id="tkSlider" data-param="tk" type="range" min="10" max="70" value="42" step="1" aria-describedby="tkExtents">
+            <div class="range-extents" id="tkExtents"><span>10°</span><span>70°</span></div>
+          </div>
+
+          <div class="parameter-row">
+            <div class="parameter-top">
+              <label class="parameter-name" for="clSlider">Cervical Lordosis <abbr title="Cervical Lordosis">CL</abbr></label>
+              <output class="parameter-value" id="clValue" for="clSlider"><span>18</span><span>°</span></output>
+            </div>
+            <input id="clSlider" data-param="cl" type="range" min="-50" max="80" value="18" step="1" aria-describedby="clExtents">
+            <div class="range-extents" id="clExtents"><span>−50°</span><span>80°</span></div>
+          </div>
+
+          <div class="parameter-row">
+            <div class="parameter-top">
+              <label class="parameter-name" for="ptSlider">Pelvic Tilt <abbr title="Pelvic Tilt">PT</abbr></label>
+              <output class="parameter-value" id="ptValue" for="ptSlider"><span>22</span><span>°</span></output>
+            </div>
+            <input id="ptSlider" data-param="pt" type="range" min="5" max="45" value="22" step="1" aria-describedby="ptExtents">
+            <div class="range-extents" id="ptExtents"><span>5°</span><span>45°</span></div>
+          </div>
+        </div>
+
+        <div class="derived-strip" aria-label="Calculated sacral slope">
+          <span>Pre-op sacral slope · PI − PT</span><strong id="sacralSlope">30°</strong>
+        </div>
+
+        <div class="form-field measured-sva-field">
+          <label for="measuredSvaInput">Measured C7 SVA · optional</label>
+          <div class="correction-input-wrap">
+            <input class="correction-input" id="measuredSvaInput" type="number" min="-30" max="30" step="any" inputmode="decimal" placeholder="Not entered" aria-describedby="measuredSvaNote measuredSvaHint">
+            <span class="correction-unit" aria-hidden="true">cm</span>
+          </div>
+          <p class="correction-note" id="measuredSvaNote">Standing full-length lateral: signed horizontal offset from the posterosuperior S1 corner to the C7 plumb line; anterior is positive. Enter centimetres, −30 to 30 cm; much of the literature reports SVA in mm (45 mm = 4.5 cm). The app never infers SVA.</p>
+          <p class="field-hint" id="measuredSvaHint" role="status" hidden></p>
+        </div>
+
+        <div class="form-field age-reference-field">
+          <label for="ageInput">Age · optional</label>
+          <div class="correction-input-wrap">
+            <input class="correction-input" id="ageInput" type="number" min="18" max="100" step="1" inputmode="numeric" placeholder="Not entered" aria-describedby="ageReferenceNote">
+            <span class="correction-unit" aria-hidden="true">yr</span>
+          </div>
+          <div class="age-reference" id="ageReference" aria-live="polite"></div>
+          <p class="correction-note" id="ageReferenceNote">Display-only reference: Lafage R et al., Spine 2016;41(1):62–68 (PMID 26689395) reported HRQOL-derived ideal PI–LL, PT and SVA values that rise with age. Age changes no model output, modifier or suggestion.</p>
+        </div>
+
+        <section class="three-plane-case" aria-labelledby="threePlaneCaseHeading">
+          <div class="three-plane-case-head"><strong id="threePlaneCaseHeading">Coronal &amp; axial scenario</strong><span>Editable surrogate</span></div>
+          <div class="three-plane-case-grid">
+            <div class="form-field">
+              <label for="primaryCobbInput">Primary Cobb input</label>
+              <div class="correction-input-wrap"><input class="correction-input" id="primaryCobbInput" type="number" min="0" max="120" step="1" value="0" inputmode="decimal"><span class="correction-unit" aria-hidden="true">°</span></div>
+            </div>
+            <div class="form-field">
+              <label for="primaryCurveDirection">Primary apex</label>
+              <select class="form-select" id="primaryCurveDirection"><option value="right">Right</option><option value="left">Left</option></select>
+            </div>
+            <div class="form-field">
+              <label for="compensatoryCobbInput">Secondary Cobb input</label>
+              <div class="correction-input-wrap"><input class="correction-input" id="compensatoryCobbInput" type="number" min="0" max="100" step="1" value="0" inputmode="decimal"><span class="correction-unit" aria-hidden="true">°</span></div>
+            </div>
+            <div class="form-field">
+              <label for="apicalTranslationInput">Apical translation</label>
+              <div class="correction-input-wrap"><input class="correction-input" id="apicalTranslationInput" type="number" min="-150" max="150" step="1" value="0" inputmode="decimal"><span class="correction-unit" aria-hidden="true">mm</span></div>
+            </div>
+            <div class="form-field" style="grid-column:1/-1">
+              <label for="primaryAxialRotationInput">Apical axial rotation</label>
+              <div class="correction-input-wrap"><input class="correction-input" id="primaryAxialRotationInput" type="number" min="-90" max="90" step="1" value="0" inputmode="decimal"><span class="correction-unit" aria-hidden="true">°</span></div>
+            </div>
+          </div>
+          <label class="compensation-toggle" for="coronalCompensationInput"><input id="coronalCompensationInput" type="checkbox"><span>Allow a flexibility-weighted secondary-curve response in the modeled post-op view</span></label>
+          <div class="flexibility-control">
+            <label for="secondaryFlexibilityInput"><span>Secondary curve flexibility</span><output id="secondaryFlexibilityValue" for="secondaryFlexibilityInput">0%</output></label>
+            <input id="secondaryFlexibilityInput" type="range" min="0" max="100" step="5" value="0" aria-describedby="threePlaneCaseNote">
+          </div>
+          <p class="three-plane-case-note" id="threePlaneCaseNote">0% is structural/rigid; 100% is fully flexible in this bounded display surrogate. Flexibility must come from the user; it is not inferred from Cobb angle, age, degeneration, or the selected operation.</p>
+        </section>
+
+        <section class="demo-library" aria-labelledby="demoLibraryHeading">
+          <label id="demoLibraryHeading" for="demoCaseSelect">Example pathology library</label>
+          <select class="form-select" id="demoCaseSelect">
+            <optgroup label="Reference and sagittal alignment">
+              <option value="neutral-reference">Neutral reference</option>
+              <option value="roussouly-reference">Roussouly type 3 reference pattern</option>
+              <option value="moderate-positive-sagittal">Moderate positive sagittal pattern</option>
+              <option value="flatback">Marked flatback with lumbar collapse</option>
+            </optgroup>
+            <optgroup label="Cervical and thoracic">
+              <option value="cervical-kyphosis">Cervical kyphosis pattern</option>
+              <option value="cervicothoracic-malalignment">Cervicothoracic positive malalignment</option>
+              <option value="cervical-degeneration">Multilevel cervical degeneration factors</option>
+              <option value="cervical-block-variant">Cervical block-vertebra proportion</option>
+              <option value="thoracic-hyperkyphosis">Thoracic hyperkyphosis pattern</option>
+              <option value="junctional-kyphosis">Thoracolumbar junctional kyphosis</option>
+            </optgroup>
+            <optgroup label="Coronal and three-plane">
+              <option value="degenerative-scoliosis" selected>Adult degenerative lumbar scoliosis</option>
+              <option value="thoracic-major-curve">Thoracic-major curve pattern</option>
+              <option value="double-major-curve">Double-major curve pattern</option>
+              <option value="compensated-thoracolumbar">Compensated thoracolumbar curve</option>
+              <option value="cervical-coronal-curve">Cervical coronal curve pattern</option>
+            </optgroup>
+            <optgroup label="Lumbar degeneration and variants">
+              <option value="lumbar-degeneration">Multilevel lumbar degeneration factors</option>
+              <option value="l4-l5-translation">L4-L5 translation and narrowing factors</option>
+              <option value="thoracic-wedge-variant">Focal unilateral thoracic wedge proportion</option>
+              <option value="lumbosacral-transitional">Lumbosacral transitional proportion</option>
+              <option value="reported-low-bone-quality">Reported low bone-quality context</option>
+            </optgroup>
+          </select>
+          <p class="demo-description" id="demoCaseDescription">Authored lumbar-major coronal asymmetry with multilevel disc-height loss, facet enlargement, and osteophyte display factors. Not a reconstructed diagnosis.</p>
+          <div class="demo-actions">
+            <button class="demo-button" id="scanButton" type="button">
+              <i class="fa-solid fa-book-open" aria-hidden="true"></i>
+              <span id="scanButtonText">Load selected example</span><span class="demo-tag">DEMO</span>
+            </button>
+            <button class="demo-button reset-button" id="resetScenario" type="button" aria-label="Reset scenario to neutral reference" title="Reset scenario">
+              <i class="fa-solid fa-rotate-right" aria-hidden="true"></i><span>Reset</span>
+            </button>
+          </div>
+          <button class="demo-button patient-imaging-button" id="openPatientImaging" type="button" aria-haspopup="dialog" aria-controls="patientImagingDialog">
+            <i class="fa-solid fa-x-ray" aria-hidden="true"></i>
+            <span>Import patient imaging</span><span class="demo-tag">LOCAL</span>
+          </button>
+          <p class="patient-imaging-summary" id="patientImagingSummary">No patient imaging staged. Atlas reference anatomy is active.</p>
+          <p class="helper-copy">Example cases are deterministic authored surrogates. Patient files remain in memory on this device and are never sent by this build.</p>
+        </section>
+      </aside>
+
+      <section class="viewport-shell" aria-labelledby="viewportHeading">
+        <h2 class="sr-only" id="viewportHeading">Interactive three-dimensional spine anatomy and alignment model</h2>
+        <div class="viewport" id="viewport" tabindex="0" role="region" aria-label="Interactive 3D spine viewport" aria-describedby="canvasDescription" data-testid="viewport">
+          <p class="sr-only" id="canvasDescription">Pre-operative sagittal spine visualization. Use drag to rotate, scroll or pinch to zoom, arrow keys to orbit, plus or minus to zoom, and R to reset the camera.</p>
+
+          <button type="button" class="panel-edge-toggle" data-side="patient" id="togglePatientPanel"
+                  aria-label="Collapse the case parameters panel" aria-expanded="true">&#9664;</button>
+          <button type="button" class="panel-edge-toggle" data-side="itinerary" id="toggleItineraryPanel"
+                  aria-label="Collapse the procedure panel" aria-expanded="true">&#9654;</button>
+
+          <div class="viewport-topbar" aria-hidden="false">
+            <div class="orientation-control">
+              <div class="orientation-chip" id="orientationChip" title="Current camera orientation"><i class="fa-solid fa-compass" aria-hidden="true"></i><span id="orientationLabel">Left lateral</span></div>
+              <div class="view-presets" id="viewPresets" role="group" aria-label="Camera view presets">
+                <button type="button" class="view-preset" data-view-preset="lateral" aria-pressed="true" title="Left lateral: camera at the patient's left side, anterior on screen left (key 1)">Lat</button>
+                <button type="button" class="view-preset" data-view-preset="ap" aria-pressed="false" title="AP view: camera in front of the patient, patient's right on screen left (key 2)">AP</button>
+                <button type="button" class="view-preset" data-view-preset="pa" aria-pressed="false" title="PA view: camera behind the patient, patient's right on screen right (key 3)">PA</button>
+                <button type="button" class="view-preset" data-view-preset="oblique" aria-pressed="false" title="Left anterior oblique, 45 degrees between left lateral and AP (key 4)">Obl</button>
+              </div>
+            </div>
+            <div class="viewport-actions">
+              <button class="viewport-action-button" id="openAnatomyLab" type="button" aria-haspopup="dialog" aria-controls="anatomyLabDialog"><span aria-hidden="true">&#9881;</span> Anatomy Lab</button>
+              <button class="viewport-action-button" id="toggleSurveillance" type="button" aria-pressed="true" aria-controls="surveillanceMarkerLayer surveillanceInspector"><span aria-hidden="true">&#8644;</span> Construct review <span id="surveillanceToggleCount" aria-hidden="true">0</span></button>
+              <button class="viewport-action-button" id="toggleLayers" type="button" aria-expanded="false" aria-controls="layerPanel"><span aria-hidden="true">&#9673;</span> Layers</button>
+              <button class="viewport-action-button" id="toggleGait" type="button" aria-pressed="false"><span aria-hidden="true">&#8703;</span> Gait</button>
+              <button class="icon-button" id="toggleImmersive" type="button" aria-pressed="false" aria-label="Immersive view: hide panels and reference chrome"><i class="fa-solid fa-expand" aria-hidden="true"></i></button>
+              <button class="icon-button" id="resetCamera" type="button" aria-label="Reset camera to the selected view preset" title="Reset camera (R)"><i class="fa-solid fa-crosshairs" aria-hidden="true"></i></button>
+              <button class="icon-button" id="toggleLegend" type="button" aria-label="Toggle viewport legend" aria-pressed="true"><i class="fa-solid fa-list" aria-hidden="true"></i></button>
+            </div>
+          </div>
+
+          <div class="view-switch" id="viewSwitch" role="group" aria-label="Spine view" data-updated="false">
+            <button id="preViewButton" type="button" aria-pressed="true">Pre-Op</button>
+            <button id="postViewButton" type="button" aria-pressed="false">Modeled Post-Op<span class="updated-dot" aria-hidden="true"></span></button>
+          </div>
+
+          <div class="mode-chip" id="modeChip">Pre-Op anatomy</div>
+          <button type="button" class="inspect-exit" id="inspectExitButton">
+            <i class="fa-solid fa-arrow-left-long" aria-hidden="true"></i>
+            <span>Exit level isolation<small id="inspectExitLevel">Showing one level</small></span>
+          </button>
+          <div class="gait-chip" id="gaitChip" hidden>
+            <strong>Gait deviation vs published control<span id="gaitViewLabel"></span></strong>
+            <div class="gait-flags" id="gaitFlags"></div>
+            <span>Linearly interpolates between published cross-sectional cohort means using authored pelvic tilt. This is not a causal treatment response or patient-specific prediction; no forces, loads, or muscle activity are modeled.</span>
+          </div>
+          <div class="shape-chip" id="shapeChip" role="button" tabindex="0" aria-expanded="false">Sagittal geometry · loading source CT reference pose</div>
+          <div class="geometry-chip" id="geometryChip" data-mode="fallback" role="button" tabindex="0" aria-expanded="false">Reference geometry · verifying embedded atlas</div>
+          <div class="anatomy-axis" aria-hidden="true"><span>↑ Cranial</span><span id="axisHorizontalLabel">Anterior ←</span></div>
+
+          <div class="layer-panel" id="layerPanel" hidden>
+            <strong>Viewport layers</strong>
+            <span class="layer-heading">Anatomy visibility</span>
+            <label class="layer-toggle"><input id="layerSkull" type="checkbox" checked><span>Skull &amp; occiput</span></label>
+            <label class="layer-toggle"><input id="layerCervical" type="checkbox" checked><span>Cervical spine</span></label>
+            <label class="layer-toggle"><input id="layerThoracic" type="checkbox" checked><span>Thoracic spine</span></label>
+            <label class="layer-toggle"><input id="layerLumbar" type="checkbox" checked><span>Lumbar spine</span></label>
+            <label class="layer-toggle"><input id="layerPelvis" type="checkbox" checked><span>Pelvis &amp; sacrum</span></label>
+            <label class="layer-toggle"><input id="layerLowerLimbs" type="checkbox" checked><span>Lower limbs</span></label>
+            <span class="layer-heading">Supporting display</span>
+            <label class="layer-toggle"><input id="layerDiscs" type="checkbox" checked><span>Disc envelopes</span></label>
+            <label class="layer-toggle"><input id="layerLigaments" type="checkbox"><span>Ligament pathways</span></label>
+            <label class="layer-toggle"><input id="layerSiJoints" type="checkbox"><span>SI joint surfaces</span></label>
+            <label class="layer-toggle"><input id="layerMeasurements" type="checkbox"><span>Alignment reference lines</span></label>
+            <label class="layer-toggle"><input id="layerImplants" type="checkbox" checked><span>Modeled implants</span></label>
+            <p class="layer-note">Anatomy regions can be hidden independently without disconnecting the spine model. Focused inspection temporarily shows its selected level.</p>
+          </div>
+
+          <div class="surveillance-marker-layer" id="surveillanceMarkerLayer" aria-label="Postoperative construct review points"></div>
+          <aside class="surveillance-inspector" id="surveillanceInspector" aria-labelledby="surveillanceInspectorHeading" hidden>
+            <div class="surveillance-inspector-head">
+              <div><h3 id="surveillanceInspectorHeading">Postoperative construct review point</h3><p class="surveillance-inspector-subtitle" id="surveillanceInspectorSubtitle"></p></div>
+              <button class="icon-button" id="closeSurveillanceInspector" type="button" aria-label="Close surveillance point details"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            </div>
+            <ul class="surveillance-factor-list" id="surveillanceFactorList"></ul>
+            <details class="surveillance-unknowns"><summary>Important inputs not evaluated</summary><p id="surveillanceUnknowns"></p></details>
+            <div class="surveillance-inspector-actions"><button class="viewport-action-button" id="inspectSurveillanceLevel" type="button">Isolate this level</button></div>
+          </aside>
+
+          <canvas id="threeCanvas" aria-hidden="true"></canvas>
+          <div class="world-label" id="c7Label" hidden>C7 centroid</div>
+          <div class="world-label plumb" id="plumbLabel" hidden>S1 plumb</div>
+
+          <div class="viewport-bottom">
+            <div class="canvas-legend" id="canvasLegend" aria-label="Reference line legend">
+              <div class="legend-item" data-legend-layer="measurements" hidden><span class="legend-line"></span><span>S1 vertical plumb reference</span></div>
+              <div class="legend-item" data-legend-layer="measurements" hidden><span class="legend-line dashed"></span><span>C7 centroid plumb line</span></div>
+              <div class="legend-item" data-legend-layer="bone"><span class="legend-swatch"></span><span>Reference bone anatomy</span></div>
+              <div class="legend-item" data-legend-layer="discs"><span class="legend-swatch disc"></span><span>Intervertebral discs</span></div>
+              <div class="legend-item" data-legend-layer="ligaments" hidden><span class="legend-swatch ligament"></span><span>Ligament pathways</span></div>
+              <div class="legend-item" data-legend-layer="siJoints" hidden><span class="legend-swatch si"></span><span>SI joint surfaces</span></div>
+              <div class="legend-item" data-legend-layer="implants" hidden><span class="legend-swatch hardware"></span><span>Modeled implants</span></div>
+            </div>
+            <div class="interaction-hint" id="interactionHint">Drag to rotate · Scroll to zoom</div>
+            <button class="mobile-edit-button" id="editScenarioButton" type="button">↓ Edit scenario</button>
+          </div>
+
+          <div class="loading-state" id="loadingState">
+            <div class="loading-card"><div class="loading-spinner"></div><strong>Initializing 3D kinematics</strong><span>Decoding the embedded reference atlas</span></div>
+          </div>
+
+          <div class="canvas-error" id="canvasError" hidden>
+            <div class="canvas-error-card">
+              <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+              <h3>3D visualization unavailable</h3>
+              <p id="canvasErrorMessage">The numerical modeling tools remain active. Retry the embedded 3D engine.</p>
+              <button class="demo-button" id="retryVisualization" type="button"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Retry 3D visualization</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="side-panel itinerary-panel" id="surgicalItinerary" aria-labelledby="itineraryHeading" data-panel-tab="build">
+        <div class="panel-heading">
+          <div>
+            <h2 id="itineraryHeading">Procedure scenario</h2>
+            <p>Level-specific modeled correction &amp; hardware</p>
+          </div>
+          <span class="panel-badge"><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i> Model</span>
+        </div>
+
+        <div class="panel-tabs" role="tablist" aria-label="Procedure panel sections">
+          <button class="panel-tab" type="button" role="tab" id="itineraryTabBuild" aria-controls="surgicalItinerary" data-panel-target="itinerary" data-tab="build" aria-selected="true" tabindex="0">Build</button>
+          <button class="panel-tab" type="button" role="tab" id="itineraryTabReview" aria-controls="surgicalItinerary" data-panel-target="itinerary" data-tab="review" aria-selected="false" tabindex="-1">Review</button>
+        </div>
+
+        <details class="workflow-help">
+          <summary>How to build and review a scenario</summary>
+          <ol><li>Choose a target and procedure.</li><li>Review the explicit correction and, if needed, expand implant sizing.</li><li>Add the item, switch to Modeled Post-Op, then open a flagged level to see exactly which factors triggered it.</li></ol>
+        </details>
+
+        <form class="procedure-form" id="procedureForm" novalidate>
+          <div class="form-field">
+            <label for="levelSelect">Surgical target</label>
+            <select class="form-select" id="levelSelect" required data-testid="level-select"></select>
+          </div>
+          <div class="form-field">
+            <label for="procedureSelect">Procedure</label>
+            <select class="form-select" id="procedureSelect" required data-testid="procedure-select"></select>
+          </div>
+          <p class="compatibility-copy" id="compatibilityCopy">Showing level-compatible procedures</p>
+          <div class="impact-preview" id="impactPreview" aria-live="polite">
+            <div><strong>Choose a procedure</strong><span>Modeled effect and implant will appear here</span></div><span class="angle-chip">—</span>
+          </div>
+          <section class="implant-config" id="implantConfig" aria-labelledby="implantConfigHeading" data-collapsed="true">
+            <div class="implant-config-head">
+              <div><strong id="implantConfigHeading">Implant &amp; graft dimensions</strong><span id="implantCatalogLabel">Catalog values — verification status shown per family</span></div>
+              <button class="implant-config-toggle" id="toggleImplantDetails" type="button" aria-expanded="false" aria-controls="catalogImplantFields customImplantFields">Adjust sizes</button>
+            </div>
+            <label class="implant-source-toggle" id="customImplantModeField" for="customImplantMode"><input id="customImplantMode" type="checkbox"><span>Use custom dimensional envelope</span></label>
+            <label class="implant-source-toggle" id="supplementalPosteriorField" for="includePosteriorFixation" hidden><input id="includePosteriorFixation" type="checkbox" checked><span>Include bilateral posterior screw-rod fixation</span></label>
+            <p class="implant-disclosure" id="supplementalPosteriorNote" hidden>On by default. Turn off to author an interbody-only construct; this changes construct topology and review markers, not a clinical recommendation.</p>
+            <div class="implant-config-grid" id="catalogImplantFields">
+              <div class="implant-field" id="cageCatalogField"><label for="cageCatalogSelect">Device family</label><select class="form-select" id="cageCatalogSelect"></select></div>
+              <div class="implant-field" id="cageFootprintField"><label for="cageFootprintSelect">Footprint · AP × ML</label><select class="form-select" id="cageFootprintSelect"></select></div>
+              <div class="implant-field" id="cageHeightField"><label for="cageHeightSelect">Implant height</label><select class="form-select" id="cageHeightSelect"></select></div>
+              <div class="implant-field" id="cageLordosisField"><label for="cageLordosisSelect">Lordosis</label><select class="form-select" id="cageLordosisSelect"></select></div>
+              <div class="implant-field" id="topsIpdField" hidden><label for="topsIpdSelect">TOPS interpedicular distance</label><select class="form-select" id="topsIpdSelect"></select></div>
+              <div class="implant-field" id="topsPlateLengthField" hidden><label for="topsPlateLengthSelect">TOPS plate length</label><select class="form-select" id="topsPlateLengthSelect"></select></div>
+              <div class="implant-field" id="screwDiameterField"><label for="screwDiameterSelect">Screw diameter</label><select class="form-select" id="screwDiameterSelect"></select></div>
+              <div class="implant-field" id="screwLengthField"><label for="screwLengthSelect">Screw length</label><select class="form-select" id="screwLengthSelect"></select></div>
+              <div class="implant-field" id="rodDiameterField"><label for="rodDiameterSelect">Rod diameter</label><select class="form-select" id="rodDiameterSelect"></select></div>
+              <div class="implant-field" id="rodLengthField"><label for="rodLengthSelect">Rod length</label><select class="form-select" id="rodLengthSelect"></select></div>
+              <div class="implant-field" id="graftFamilyField"><label for="graftFamilySelect">Graft package</label><select class="form-select" id="graftFamilySelect"></select></div>
+              <div class="implant-field" id="graftVolumeField"><label for="graftVolumeSelect">Package volume</label><select class="form-select" id="graftVolumeSelect"></select></div>
+            </div>
+            <div class="implant-custom-grid" id="customImplantFields" hidden>
+              <div class="implant-field" style="grid-column:1/-1"><label for="customImplantLabel">Custom component label</label><input class="custom-dimension-input" id="customImplantLabel" type="text" maxlength="80" value="User-defined research geometry"></div>
+              <div class="implant-field" id="customCageApField"><label for="customCageAp">Cage AP (mm)</label><input class="custom-dimension-input" id="customCageAp" type="number" min="4" max="80" step="0.1" value="24"></div>
+              <div class="implant-field" id="customCageMlField"><label for="customCageMl">Cage ML (mm)</label><input class="custom-dimension-input" id="customCageMl" type="number" min="4" max="100" step="0.1" value="35"></div>
+              <div class="implant-field" id="customCageAnteriorField"><label for="customCageAnterior">Anterior height (mm)</label><input class="custom-dimension-input" id="customCageAnterior" type="number" min="2" max="40" step="0.1" value="11"></div>
+              <div class="implant-field" id="customCagePosteriorField"><label for="customCagePosterior">Posterior height (mm)</label><input class="custom-dimension-input" id="customCagePosterior" type="number" min="2" max="40" step="0.1" value="8"></div>
+              <div class="implant-field" id="customScrewDiameterField"><label for="customScrewDiameter">Screw shaft diameter (mm)</label><input class="custom-dimension-input" id="customScrewDiameter" type="number" min="1.5" max="16" step="0.1" value="6.5"></div>
+              <div class="implant-field" id="customScrewLengthField"><label for="customScrewLength">Screw length (mm)</label><input class="custom-dimension-input" id="customScrewLength" type="number" min="5" max="200" step="0.5" value="45"></div>
+              <div class="implant-field" id="customRodDiameterField"><label for="customRodDiameter">Rod diameter (mm)</label><input class="custom-dimension-input" id="customRodDiameter" type="number" min="2" max="8" step="0.1" value="5.5"></div>
+              <div class="implant-field" id="customRodLengthField"><label for="customRodLength">Rod length (mm)</label><input class="custom-dimension-input" id="customRodLength" type="number" min="10" max="600" step="1" value="60"></div>
+              <div class="implant-field" id="customGraftLabelField"><label for="customGraftLabel">Graft label</label><input class="custom-dimension-input" id="customGraftLabel" type="text" maxlength="80" value="User-declared graft quantity"></div>
+              <div class="implant-field" id="customGraftVolumeField"><label for="customGraftVolume">Declared quantity (cc)</label><input class="custom-dimension-input" id="customGraftVolume" type="number" min="0.1" max="250" step="0.1" value="3"></div>
+            </div>
+            <p class="implant-disclosure" id="implantDisclosure">Catalog-size visualization only. Selection does not establish fit, trajectory, containment, indication, or safety.</p>
+          </section>
+          <section class="plane-correction-editor" aria-labelledby="planeCorrectionHeading">
+            <div class="plane-correction-head"><strong id="planeCorrectionHeading">Planned segment change</strong><span>Three-plane scenario</span></div>
+            <div class="plane-correction-grid">
+              <div class="form-field">
+                <label for="correctionInput">Sagittal change</label>
+                <div class="correction-input-wrap"><input class="correction-input" id="correctionInput" type="number" min="-60" max="60" step="0.5" inputmode="decimal" value="15" required aria-describedby="correctionNote"><span class="correction-unit" aria-hidden="true">&deg;</span></div>
+              </div>
+              <div class="form-field">
+                <label for="coronalCorrectionInput">Coronal change</label>
+                <div class="correction-input-wrap"><input class="correction-input" id="coronalCorrectionInput" type="number" min="-45" max="45" step="0.5" inputmode="decimal" value="0" aria-describedby="planeCorrectionDisclosure"><span class="correction-unit" aria-hidden="true">&deg;</span></div>
+              </div>
+              <div class="form-field">
+                <label for="axialCorrectionInput">Axial rotation change</label>
+                <div class="correction-input-wrap"><input class="correction-input" id="axialCorrectionInput" type="number" min="-30" max="30" step="0.5" inputmode="decimal" value="0" aria-describedby="planeCorrectionDisclosure"><span class="correction-unit" aria-hidden="true">&deg;</span></div>
+              </div>
+              <div class="form-field">
+                <label for="translationCorrectionInput">Apical translation change</label>
+                <div class="correction-input-wrap"><input class="correction-input" id="translationCorrectionInput" type="number" min="-40" max="40" step="1" inputmode="decimal" value="0" aria-describedby="planeCorrectionDisclosure"><span class="correction-unit" aria-hidden="true">mm</span></div>
+              </div>
+            </div>
+            <p class="correction-note" id="correctionNote">The procedure default is a starting scenario—not a predicted surgical result.</p>
+            <p class="plane-correction-disclosure" id="planeCorrectionDisclosure">Signed authoring convention: positive coronal change moves the curve toward an apex-right configuration; positive axial change turns the vertebral body toward the patient's right; positive translation moves the apex to the patient's right. Values are rigid display transforms, not achieved correction or force simulation.</p>
+          </section>
+          <p class="procedure-edit-banner" id="procedureEditBanner" role="status" hidden></p>
+          <button class="primary-button" type="submit" id="addProcedure"><i class="fa-solid fa-plus" aria-hidden="true"></i> <span id="addProcedureLabel">Add to itinerary</span></button>
+          <button class="secondary-button" type="button" id="cancelProcedureEdit" hidden>Cancel edit</button>
+          <p class="form-error" id="procedureError" role="alert"></p>
+        </form>
+
+        <div class="itinerary-head">
+          <h3>Active procedures</h3><span class="count-badge" id="procedureCount">0</span>
+        </div>
+        <div class="itinerary-list" id="itineraryList" aria-live="polite" data-testid="itinerary-list"></div>
+
+        <details class="construct-comparison-card" open data-testid="construct-comparisons">
+          <summary class="construct-comparison-head"><span class="suggestion-spark" aria-hidden="true"><i class="fa-solid fa-lightbulb"></i></span><span id="constructComparisonHeading">Suggested fixes · construct scenarios</span><span class="count-badge" id="constructComparisonCount">0</span></summary>
+          <p class="construct-comparison-copy" id="constructComparisonSummary">Evidence-linked, unranked scenarios matched to the current measurements. Prefill or apply a branch to explore it — nothing here is a treatment recommendation.</p>
+          <div class="construct-comparison-list" id="constructComparisonList"></div>
+          <p class="construct-comparison-disclosure">These are unranked educational scenarios. Apply branch adds the authored sequence atomically so its modeled residual can be inspected; it does not select treatment, establish eligibility, or predict an achieved clinical correction.</p>
+        </details>
+
+        <section class="prediction-card" aria-labelledby="predictionHeading" data-testid="prediction-summary">
+          <div class="prediction-title"><h3 id="predictionHeading">Illustrative modeled alignment</h3><i class="fa-solid fa-chart-line" aria-hidden="true"></i></div>
+          <div class="assumption-control">
+            <input id="reciprocalAssumptionInput" type="checkbox" checked aria-describedby="reciprocalAssumptionNote">
+            <label for="reciprocalAssumptionInput">Apply reciprocal thoracic kyphosis response</label>
+            <p id="reciprocalAssumptionNote">On by default: TK +0.2° per 1° of modeled lumbar gain. Pelvic tilt responds whether or not this is on: −0.5° per 1° of lordosis gained at L4–S1 and −0.25° per 1° at L1–L4 and T12–L1 (level-dependent, Lafage R et al., Global Spine J 2022), floored at the lower of 10° and the PI-relative ideal PT, because a standing chain cannot hold compensatory retroversion once lordosis is restored. Turn this off only to isolate the local correction from the reciprocal thoracic change.</p>
+          </div>
+          <div class="prediction-rows">
+            <div class="prediction-row"><span>Lumbar lordosis <small class="provenance-tag" id="llProvenance">input</small></span><div class="prediction-values"><span class="prediction-before" id="llBefore">48°</span><i class="fa-solid fa-arrow-right prediction-arrow" aria-hidden="true"></i><strong class="prediction-after" id="llAfter">48°</strong><span class="prediction-delta" id="llDelta">Δ 0°</span></div></div>
+            <div class="prediction-row"><span>C2–C7 angle <small class="provenance-tag" id="clProvenance">input</small></span><div class="prediction-values"><span class="prediction-before" id="clBefore">18°</span><i class="fa-solid fa-arrow-right prediction-arrow" aria-hidden="true"></i><strong class="prediction-after" id="clAfter">18°</strong><span class="prediction-delta" id="clDelta">Δ 0°</span></div></div>
+            <div class="prediction-row"><span id="tkRowLabel">Thoracic kyphosis <small class="provenance-tag" id="tkProvenance">input</small></span><div class="prediction-values"><span class="prediction-before" id="tkBefore">42°</span><i class="fa-solid fa-arrow-right prediction-arrow" aria-hidden="true"></i><strong class="prediction-after" id="tkAfter">42°</strong><span class="prediction-delta" id="tkDelta">Δ 0°</span></div></div>
+            <div class="prediction-row"><span id="ptRowLabel">Pelvic tilt <small class="provenance-tag" id="ptProvenance">input</small></span><div class="prediction-values"><span class="prediction-before" id="ptBefore">22°</span><i class="fa-solid fa-arrow-right prediction-arrow" aria-hidden="true"></i><strong class="prediction-after" id="ptAfter">22°</strong><span class="prediction-delta" id="ptDelta">Δ 0°</span></div></div>
+          </div>
+          <div class="three-plane-prediction" aria-label="Three-plane scenario summary">
+            <p class="three-plane-prediction-label">Coronal / axial surrogate</p>
+            <div class="prediction-rows">
+              <div class="prediction-row"><span>Primary Cobb <small class="provenance-tag">authored</small></span><div class="prediction-values"><span class="prediction-before" id="primaryCobbBefore">0°</span><i class="fa-solid fa-arrow-right prediction-arrow" aria-hidden="true"></i><strong class="prediction-after" id="primaryCobbAfter">0°</strong><span class="prediction-delta" id="primaryCobbDelta">Δ 0°</span></div></div>
+              <div class="prediction-row"><span>Secondary Cobb <small class="provenance-tag" id="secondaryCobbProvenance">response off</small></span><div class="prediction-values"><span class="prediction-before" id="secondaryCobbBefore">0°</span><i class="fa-solid fa-arrow-right prediction-arrow" aria-hidden="true"></i><strong class="prediction-after" id="secondaryCobbAfter">0°</strong><span class="prediction-delta" id="secondaryCobbDelta">Δ 0°</span></div></div>
+              <div class="prediction-row"><span>Apical translation</span><div class="prediction-values"><span class="prediction-before" id="apicalTranslationBefore">0 mm</span><i class="fa-solid fa-arrow-right prediction-arrow" aria-hidden="true"></i><strong class="prediction-after" id="apicalTranslationAfter">0 mm</strong><span class="prediction-delta" id="apicalTranslationDelta">Δ 0 mm</span></div></div>
+              <div class="prediction-row"><span>Axial rotation</span><div class="prediction-values"><span class="prediction-before" id="axialRotationBefore">0°</span><i class="fa-solid fa-arrow-right prediction-arrow" aria-hidden="true"></i><strong class="prediction-after" id="axialRotationAfter">0°</strong><span class="prediction-delta" id="axialRotationDelta">Δ 0°</span></div></div>
+            </div>
+          </div>
+          <p class="prediction-note">Tags identify whether each value passes through an input, derives from a planned correction, or uses an optional assumption. Cobb, translation, axial rotation, and flexible secondary response are bounded scenario surrogates—not reconstructed radiographic measurements, real physics, or a patient outcome prediction.</p>
+          <p class="prediction-warning" id="modelWarning" role="status" hidden></p>
+        </section>
+
+        <section class="surveillance-card" aria-labelledby="surveillanceHeading" data-testid="postoperative-surveillance">
+          <div class="surveillance-card-head"><h3 id="surveillanceHeading">Post-op construct review</h3><span class="count-badge" id="surveillanceCount">0</span></div>
+          <p class="surveillance-card-copy" id="surveillanceSummary">Add a modeled construct or posterior-element disruption to identify fusion boundaries, fixation- or device-spanned operated levels, and unspanned review points.</p>
+          <div class="surveillance-level-list" id="surveillanceLevelList"></div>
+          <p class="surveillance-disclosure">Blue marks a planned fusion boundary, teal means modeled fixation spans the operated level, and amber identifies an unspanned disruption for review. None is a diagnosis or probability.</p>
+        </section>
+
+        <section class="mechanics-card" aria-labelledby="mechanicsHeading" data-testid="mechanics-gate">
+          <div class="mechanics-head"><h3 id="mechanicsHeading">Construct &amp; mechanics readiness</h3><span class="validation-chip">Validation gate locked</span></div>
+          <div class="mechanics-grid">
+            <div class="mechanics-row"><span>Construct topology</span><strong id="mechanicsAdjacent">No planned fusion span in the scenario</strong></div>
+            <div class="mechanics-row"><span>Ligament state</span><strong id="mechanicsLigaments">Reference pathways displayed</strong></div>
+            <div class="mechanics-row"><span>Implant stress / failure</span><strong class="locked" id="mechanicsStress">Unavailable · validated FE solver not connected</strong></div>
+            <div class="mechanics-row"><span>Adjacent-segment risk</span><strong class="locked">Unavailable · no clinical prediction model</strong></div>
+          </div>
+          <p class="mechanics-note">Geometry can show construct topology, resection footprints, and which segments border a planned fusion span. Stress, strain, loosening, fatigue, subsidence, and degeneration probabilities remain disabled until the exact model and output pass verification and independent validation.</p>
+        </section>
+
+        <div class="clinical-notice"><i class="fa-solid fa-shield-heart" aria-hidden="true"></i><span>Research and education prototype. Not a medical device; it does not diagnose, recommend treatment, or predict patient-specific outcomes. Inputs stay in memory for this session and clear on reload unless you save a case file (parameters only, kept on your device); nothing is transmitted. Do not enter identifiable patient information.</span></div>
+      </aside>
+    </main>
+  </div>
+
+  <dialog id="confirmCaseDialog" class="confirm-dialog" aria-labelledby="confirmCaseHeading" aria-describedby="confirmCaseMessage">
+    <form method="dialog" class="confirm-card">
+      <h2 id="confirmCaseHeading">Replace the current case?</h2>
+      <p id="confirmCaseMessage">The current case will be replaced.</p>
+      <p class="confirm-note">You can bring it back with Undo (Ctrl+Z) or the undo button in the header.</p>
+      <div class="confirm-actions">
+        <button type="submit" class="lab-button" value="cancel" id="confirmCaseCancel">Keep current case</button>
+        <button type="submit" class="primary-button" value="confirm" id="confirmCaseAccept">Replace case</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="caseSummaryDialog" aria-labelledby="caseSummaryHeading">
+    <div class="dialog-head">
+      <h2 id="caseSummaryHeading">Case summary</h2>
+      <button type="button" class="lab-button" id="closeCaseSummary">Close</button>
+    </div>
+    <div class="dialog-body">
+      <p id="caseSummaryStatus" role="status">Select the text and copy it.</p>
+      <textarea id="caseSummaryText" class="case-summary-text" readonly rows="14" aria-label="Case summary text"></textarea>
+    </div>
+  </dialog>
+
+  <dialog id="helpDialog" aria-labelledby="helpHeading">
+    <div class="dialog-head">
+      <h2 id="helpHeading">Quick start &amp; model guide</h2>
+      <button class="icon-button" id="closeHelp" type="button" aria-label="Close model guide"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div class="dialog-body">
+      <section class="quick-start" aria-labelledby="quickStartHeading">
+        <h3 id="quickStartHeading">Quick start</h3>
+        <ol class="quick-start-steps">
+          <li><strong>Define the case.</strong> Set PI, LL, TK (T4–T12), CL and PT with the sliders, or open <em>Examples &amp; import</em> and load an example. Coronal inputs and measured SVA sit under <em>Additional measurements</em>.</li>
+          <li><strong>Review the anatomy.</strong> Rotate the model, use the <em>Lat / AP / PA / Obl</em> presets (keys 1–4), and switch between <em>Pre-Op</em> and <em>Modeled Post-Op</em>.</li>
+          <li><strong>Build the procedure.</strong> Pick a level and a procedure, check the planned change, then <em>Add to itinerary</em>. Use <em>Edit</em> on a card to change it, and the <em>Review</em> tab for the modeled output.</li>
+        </ol>
+        <p class="quick-start-note">Undo any case change with Ctrl+Z (Ctrl+Shift+Z to redo). Save the case as a .json file from the folder button in the header, and open it later or drop it onto the workspace. Everything runs on this device.</p>
+        <table class="shortcut-table">
+          <caption>Keyboard and mouse (3D viewport focused)</caption>
+          <tbody>
+            <tr><th scope="row">Drag / one-finger drag</th><td>Rotate</td></tr>
+            <tr><th scope="row">Scroll / pinch, + and −</th><td>Zoom</td></tr>
+            <tr><th scope="row">Right-drag / two-finger drag</th><td>Pan</td></tr>
+            <tr><th scope="row">Arrow keys</th><td>Orbit</td></tr>
+            <tr><th scope="row">1 · 2 · 3 · 4</th><td>Lateral · AP · PA · oblique view</td></tr>
+            <tr><th scope="row">R or 0</th><td>Reset the camera to the selected view</td></tr>
+            <tr><th scope="row">Double-click a level</th><td>Isolate it (Esc to exit)</td></tr>
+            <tr><th scope="row">Ctrl+Z · Ctrl+Shift+Z</th><td>Undo · redo a case edit (outside text fields)</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <nav class="help-toc" aria-label="Model guide sections">
+        <a href="#helpModelCard">Model card</a> · <a href="#helpLimitations">Limitations</a> · <a href="#helpEvidence">Evidence</a>
+      </nav>
+      <h3 id="helpLimitations">What the simulator shows</h3>
+      <p>The reference scene is generated as a parented kinematic chain from the feet through the skull. The skull, intact C1–L5 levels, sacrum, and bilateral hip bones use embedded CT-segmentation-derived external surfaces from one de-identified TotalSegmentator v2 source subject. Complete femur-to-metatarsal standing context uses a separately sourced BodyParts3D bilateral reference atlas. Each source is uniformly fitted without changing surface proportions; this is deliberately labeled composite reference anatomy, not one coherent patient.</p>
+      <h3>Alignment engine</h3>
+      <p>Modeled LL and CL add explicit level-specific scenario corrections. C2–C7 lordosis excludes C1–C2 and regional curves use declared, normalized display profiles rather than equal rotation at every joint. Thoracic osteotomy correction changes TK directly. The reciprocal <em>thoracic</em> response is off by default; when enabled, TK increases by 0.2° per degree of lumbar gain. The <em>pelvic</em> response is always applied when lumbar lordosis is gained — PT decreases by 0.5° per degree gained at L4–S1 and by 0.25° per degree at L1–L4 and the T12–L1 junction (level-dependent coefficients from Lafage R et al., Global Spine J 2022, PMID 33567927), floored at the lower of 10° and the PI-relative ideal PT — because compensatory pelvic retroversion is the posture a hypolordotic lumbar spine forces, and holding it after lordosis is restored would rigidly lever the modeled trunk backward into a stance no standing person could hold. That is kinematic bookkeeping for a standing chain, not an outcome prediction, and the displayed PT is tagged as a balance response. The app does not calculate SVA or a synthetic balance score.</p>
+      <p>The coronal/axial layer accepts an authored primary Cobb surrogate, secondary Cobb surrogate, apical translation, axial rotation, and operation-specific signed changes. It does not reconstruct Cobb end vertebrae or infer flexibility from imaging. Optional secondary-curve response is bounded by the fraction of primary-curve improvement and a user-declared 0–100% flexibility value: 0% leaves a structural curve unchanged, while 100% permits the full bounded proportional response. The model is an editable kinematic scenario—not real physics, a force solution, or a patient-specific prediction.</p>
+      <h3>Anatomy, ligaments, and resections</h3>
+      <p>The embedded CT surfaces provide whole-bone external shape but do not contain validated pedicle corridors or semantic lamina/facet partitions. Laminectomy and SPO therefore retain the intact CT whole-bone surface and add source-bounded planned posterior resection-envelope and cut-margin overlays. PSO likewise retains the CT surface and adds a translucent, source-bounded planned three-column wedge envelope. These overlays are not CT mesh subtraction, do not claim a completed patient-specific resection, and do not infer cut safety. TOPS automatically adds its same-level decompression item and, in the modeled post-op view, replaces the two intact display surfaces with derived open post-decompression shells that remove source-bounded posterior triangles through the lamina/spinous/facet display regions while preserving the original CT meshes for pre-op. Those shells demonstrate the decompression footprint but are not Boolean solids, patient-specific cut plans, or clearance validation. The external TOPS display follows the public two-crossbar, four-screw, compact-boot topology; proprietary internal geometry and patient fit remain withheld. Lower-limb hip, knee, and ankle pivots use documented surface-geometry heuristics only—not validated functional joint centers. Ligaments are thin, CT-envelope-guided attachment/pathway proxies that meet at shared motion pivots; they are not segmented tissue or force-bearing elements.</p>
+      <p>Ligament pathways, SI surfaces, and alignment measurement guides are overlays, not bone anatomy; they are hidden by default and can be enabled from Layers. Implant shafts, rods, cage envelopes, and arthroplasty envelopes use explicit catalog millimetre dimensions selected by the user and converted through the shared scene scale. Catalog availability is not a sizing recommendation. Screw corridors, containment, interference, fit, head/thread details, cage teeth/porosity, and graft packing are not validated. Components without a dimensioned catalog fail closed and are not replaced by generic oversized geometry.</p>
+      <p><strong>Third-party names.</strong> TOPS, XLIF, OLIF25, Mobi-C, HEDRON, neon³, uCentum, uBase, MASTERGRAFT, ViviGen, Infuse, and other referenced product or procedure marks belong to their respective owners. References are used only to identify source material or a catalog configuration and do not imply sponsorship, affiliation, endorsement, or freedom to operate.</p>
+      <h3>Anatomy Lab reference-state editor</h3>
+      <p>Anatomy Lab stores manually authored three-plane shape, standing-alignment context, and level-specific reference-appearance factors separately from the alignment calculator. Loaded disc-height loss is a geometric percentage, not an MRI or Pfirrmann grade. Shape transforms alter only simple display proportions; they do not recreate congenital topology, establish enumeration, or diagnose a variant. When an intact CT reference surface is available, degeneration and component-appearance factors never replace it with a generic whole-bone mesh; unsupported component shape edits are withheld while supported disc and bounded overlays remain visible. Exploded inspection is non-anatomic and disables measurement, containment, and collision interpretation. Cervical arthroplasty represents disc replacement after discectomy and endplate preparation; TOPS represents posterior-element/facet replacement after decompression, not disc replacement.</p>
+      <h3>Evidence-linked construct comparisons</h3>
+      <p>The comparison panel matches transparent authored patterns—such as positive sagittal alignment, regional coronal/axial factors, cervical or thoracic deformity, focal junctional angulation, and lumbar level-specific collapse or translation—to unranked construct scenarios. Each scenario exposes why it appeared, editable representative branches or sequences, linked study context, and the patient-specific inputs still missing. Prefill changes only the procedure editor; it never adds a procedure or claims that a construct is indicated, preferred, feasible, or likely to achieve the seeded correction.</p>
+      <h3>Postoperative construct review</h3>
+      <p>The Modeled Post-Op view first aggregates every same-level procedure and the saved implant-plan components; a missing implant-plan snapshot fails closed and is not described as actual fixation. ALIF, LLIF, XLIF, and OLIF default to a cage plus bilateral posterior screws and rods, while an explicit editor control can author an interbody-only variant. A cage plus posterior screw–rod components is treated as a posterior-supported planned fusion—not as an untreated mobile segment. TOPS after the required laminectomy receives a separate motion-preserving-device label rather than a fusion label. Blue markers identify the first segment outside a planned fusion span; teal markers identify a posterior disruption paired with authored fixation or a motion device; amber markers identify an authored posterior disruption without either. These are topology and factor-presence labels only. They do not measure motion, prove fusion, diagnose instability, or calculate a probability.</p>
+      <h3>Mechanics validation gate</h3>
+      <p>The app may identify mobile levels adjacent to a modeled fusion, but it intentionally withholds implant stress, fatigue life, screw loosening, cage subsidence, ligament strain, adjacent-segment degeneration, and failure probability. Those outputs require patient/reference-specific geometry, nonlinear tissues and contacts, bone density, implant dimensions and materials, fusion state, boundary loads, mesh convergence, uncertainty analysis, and independent experimental validation. A render mesh is never treated as the finite-element model. Declared input/output ranges are engineering guardrails only—not normal ranges, treatment targets, or clinical thresholds; scenarios outside them suppress modeled alignment rather than extrapolate.</p>
+      <h3 id="helpModelCard">Model card · <span id="modelCardVersion">v0.23.0</span> · alpha</h3>
+      <p>Intended use: educational and research scenario exploration. Angles and optional measured SVA are user-entered; every correction records whether it is user-planned or a procedure-default assumption; the reciprocal thoracic response is visibly opt-in and assumption-derived, and the always-applied pelvic balance response is tagged as such on the pelvic-tilt row. Clinical performance has not been established, and the engine must not be used for diagnosis, treatment selection, implant sizing, or patient-specific outcome prediction.</p>
+      <p>Startup model integrity: <strong id="modelSelfTestStatus">checking…</strong></p>
+      <h3>Patient imaging boundary</h3>
+      <p>The local intake accepts only institutionally de-identified research sources. For browser-decodable standing raster images, an experimental local auto-landmark beta can estimate a spine corridor, selected endplate lines, and radiographic measurements; every result remains review-required and unvalidated. User-accepted measurements can be transferred to the reference-atlas alignment and immediately visualized, but the uploaded images never become exact 3D anatomy. CT-to-mesh reconstruction remains disabled and requires segmentation, level numbering, per-vertebra standing registration, and human QA in a validated deployment. HIPAA compliance requires administrative, physical, and technical safeguards beyond this file (<a href="https://www.hhs.gov/hipaa/for-professionals/security/index.html" target="_blank" rel="noreferrer">HHS Security Rule guidance</a>). De-identification must follow an approved method (<a href="https://www.hhs.gov/hipaa/for-professionals/special-topics/de-identification/index.html" target="_blank" rel="noreferrer">HHS de-identification guidance</a>); DICOM confidentiality profiles alone do not guarantee removal of private tags, burned-in pixels, or recognizable facial anatomy (<a href="https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_E.html" target="_blank" rel="noreferrer">DICOM PS3.15 Annex E</a>).</p>
+      <h3>SRS–Schwab reference modifiers</h3>
+      <p>PI–LL, measured SVA, and PT are shown separately as 0 / + / ++ reference bands only in the pre-op view. SVA remains unavailable unless an SVA input is present, and all bands are unavailable for modeled post-op values. The bands are not combined into a diagnosis or target; the full classification also requires a coronal curve type and clinical context.</p>
+      <div class="threshold-grid" aria-label="Reference modifier thresholds">
+        <span class="th">Modifier</span><span class="th">Grade 0</span><span class="th">Grade +</span><span class="th">Grade ++</span>
+        <span>PI–LL</span><span>&lt; 10°</span><span>10–20°</span><span>&gt; 20°</span>
+        <span>Measured SVA</span><span>&lt; 4 cm</span><span>4–9.5 cm</span><span>&gt; 9.5 cm</span>
+        <span>PT</span><span>&lt; 20°</span><span>20–30°</span><span>&gt; 30°</span>
+      </div>
+      <h3 id="helpEvidence">Evidence &amp; governance</h3>
+      <p>Three-plane context: adult deformity literature distinguishes comparatively rigid structural curves from typically smaller, more flexible compensatory curves (<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3261243/" target="_blank" rel="noreferrer">adult spine deformity review</a>) and emphasizes assessing curve flexibility rather than assuming spontaneous correction. Reciprocal whole-body changes after realignment are documented but heterogeneous (<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9827204/" target="_blank" rel="noreferrer">whole-body reciprocal-change review</a>). Lateral interbody surgery can change coronal and sagittal alignment in cohorts (<a href="https://pubmed.ncbi.nlm.nih.gov/35442824/" target="_blank" rel="noreferrer">systematic review and meta-analysis</a>), but this app intentionally applies no universal procedure-to-correction ratio.</p>
+      <p>Construct-comparison context includes an <a href="https://pubmed.ncbi.nlm.nih.gov/37875244/" target="_blank" rel="noreferrer">ALIF registry comparing stand-alone and posterior-fixation constructs</a>, a <a href="https://pubmed.ncbi.nlm.nih.gov/31440649/" target="_blank" rel="noreferrer">three-plane lateral interbody cohort</a>, <a href="https://pubmed.ncbi.nlm.nih.gov/18978421/" target="_blank" rel="noreferrer">SPO/PSO correction-range review</a>, an <a href="https://pubmed.ncbi.nlm.nih.gov/32875897/" target="_blank" rel="noreferrer">adult cervical deformity approach cohort</a>, <a href="https://pubmed.ncbi.nlm.nih.gov/35000336/" target="_blank" rel="noreferrer">MISDEF2 strategy/outcomes data</a>, and the <a href="https://pubmed.ncbi.nlm.nih.gov/38713762/" target="_blank" rel="noreferrer">TOPS randomized FDA IDE comparison</a>. Study populations and limitations are displayed inside every surfaced option; none is converted into a treatment rank or patient-specific correction estimate.</p>
+      <p>Implant catalogs: <a href="https://www.globusmedical.com/hedron/" target="_blank" rel="noreferrer">HEDRON C/A/L/P/T interbody size matrices</a>, <a href="https://www.accessdata.fda.gov/cdrh_docs/pdf11/P110009C.pdf" target="_blank" rel="noreferrer">FDA Mobi-C labeling</a>, <a href="https://www.ulrichmedical.com/03-spinal-surgery/03-02-products/03-02-03-neon3/rod-screw-system-neon3-brochure-ws3900-en.pdf" target="_blank" rel="noreferrer">neon³ cervical fixation catalog</a>, and <a href="https://www.ulrichmedical.com/03-spinal-surgery/03-02-products/03-02-04-ucentum/rod-screw-system-ucentum-ubase-brochure-ws-3800-en.pdf" target="_blank" rel="noreferrer">uCentum/uBase thoracolumbar and pelvic fixation catalog</a>. Graft selectors represent manufacturer package quantities from FDA AccessGUDID, LifeNet Health, and Medtronic; package volume is never inferred to equal volume placed at the selected level.</p>
+      <p>Anatomy QA references include adult <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC13196599/" target="_blank" rel="noreferrer">occipital-condyle CT morphometry</a>, <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8134200/" target="_blank" rel="noreferrer">C0–C2 MDCT joint intervals</a>, <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8261837/" target="_blank" rel="noreferrer">level-specific cervical disc heights</a>, <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3171774/" target="_blank" rel="noreferrer">thoracic disc anatomy</a>, and <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11700277/" target="_blank" rel="noreferrer">level-specific lumbar CT disc heights</a>. These ranges audit the reference; they do not rescale individual bones or imply patient-specific validation.</p>
+      <p>Geometry provenance: <a href="https://zenodo.org/records/10047263" target="_blank" rel="noreferrer">TotalSegmentator v2 small dataset</a> (subject s1369; CC BY 4.0) and its <a href="https://pubmed.ncbi.nlm.nih.gov/37795137/" target="_blank" rel="noreferrer">peer-reviewed dataset paper</a>. Lower limbs are adapted from BodyParts3D v4: “BodyParts3D, © The Database Center for Life Science licensed under CC Attribution 4.0 International.” The <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noreferrer">current archive license page</a> says CC BY 4.0, while the supplied OBJ headers retain a legacy CC BY-SA 2.1 Japan notice; both are preserved in the build manifest and legal confirmation is required before App Store or Play Store distribution. Secondary audits include the public-domain <a href="https://www.nlm.nih.gov/research/visible/visible_human.html" target="_blank" rel="noreferrer">NLM Visible Human Project</a>. Modeling references include <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2900026/" target="_blank" rel="noreferrer">C3–L5 full-spine CT morphometry</a>, <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7203593/" target="_blank" rel="noreferrer">ligament-informed lumbar calibration</a>, the <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6259802/" target="_blank" rel="noreferrer">SRS–Schwab classification overview</a>, an <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9816582/" target="_blank" rel="noreferrer">Ames cervical-classification review</a>, and <a href="https://pubmed.ncbi.nlm.nih.gov/30475347/" target="_blank" rel="noreferrer">standing cervical/global alignment by Roussouly subtype</a>. Render meshes are not finite-element meshes.</p>
+      <p>Postoperative factor context is drawn from peer-reviewed evidence on <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9612636/" target="_blank" rel="noreferrer">proximal junctional kyphosis factors</a>, a separate <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6362551/" target="_blank" rel="noreferrer">PJK/PJF meta-analysis</a>, the <a href="https://pubmed.ncbi.nlm.nih.gov/34166276/" target="_blank" rel="noreferrer">lumbar adjacent-segment systematic review</a>, and a <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3508235/" target="_blank" rel="noreferrer">human cadaver laminectomy study</a>. These sources justify showing factor presence; they do not validate this app as a patient-specific prediction model.</p>
+    </div>
+  </dialog>
+
+  <dialog id="patientImagingDialog" aria-labelledby="patientImagingHeading" aria-describedby="patientImagingNotice">
+    <div class="dialog-head">
+      <div class="lab-heading-copy">
+        <h2 id="patientImagingHeading">Patient imaging intake</h2>
+        <p>Local, session-only analysis of standing radiographs · experimental research beta</p>
+      </div>
+      <button class="icon-button" id="closePatientImaging" type="button" aria-label="Close patient imaging intake"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div class="dialog-body imaging-body" id="patientImagingBody">
+      <!-- Visual mirror of #autoLandmarkStatus while an analysis runs; that element stays the announced live region. -->
+      <div class="imaging-run-bar" id="imagingRunBar" aria-hidden="true" hidden><span class="imaging-run-pulse"></span><span class="imaging-run-text" id="imagingRunBarText">Analyzing the staged films…</span><span class="imaging-run-time" id="imagingRunBarTime">0 s</span></div>
+      <p class="imaging-notice" id="patientImagingNotice"><strong>This is a local research intake with an experimental, unvalidated auto-landmark beta—not a HIPAA certification or clinical reconstruction.</strong> Standing PNG, JPEG, WebP and single-frame DICOM radiographs are decoded and analyzed in this browser with image-processing heuristics and an experimental AP landmark model. Every detected point and measurement must be visually reviewed before use. Files are not intentionally transmitted, persisted, or logged, and app-held references are released on Clear or page exit. Exact patient bone geometry remains disabled.</p>
+
+      <section class="imaging-step" aria-labelledby="privacyHeading">
+        <h3 id="privacyHeading">1. Confirm this study may be used here</h3>
+        <label class="imaging-check imaging-attest"><input id="imagingAuthorization" type="checkbox" aria-describedby="imagingAttestNote"><span><strong>This study is institutionally de-identified and authorized for local research use, and I have checked its visible pixels for burned-in names, dates, accession numbers and recognizable faces.</strong> This build does not inspect or remove DICOM identifiers. Nothing is sent anywhere; a local review download is available only after a separate warning.</span></label>
+        <p class="imaging-attest-note" id="imagingAttestNote">Asked once per page session: it stays ticked when you clear files and is forgotten when this page is closed or reloaded. Cloud transfer is not available in this build.</p>
+        <!-- Former second attestation, now covered by the statement above. Kept hidden for scripted callers; it is never read as consent. -->
+        <input id="imagingPixelReview" type="checkbox" hidden tabindex="-1" aria-hidden="true">
+      </section>
+
+      <section class="imaging-step" aria-labelledby="sourceFilesHeading">
+        <h3 id="sourceFilesHeading">2. Add standing films</h3>
+        <p>A frontal film, a lateral film, or both. Files are recognized by their content, so PACS or CD exports without an extension (for example IM000001) work: choose <em>All files</em> in the file picker to see them. Single-frame DICOM radiographs are decoded locally, and their PixelSpacing or ImagerPixelSpacing fills an empty spacing field in step 3 (a value you typed is kept). DICOM the decoder cannot read (JPEG 2000, JPEG-LS, 12-bit lossy JPEG, big endian) is refused with the reason as soon as it is selected. CT series stay blocked.</p>
+        <div class="imaging-dropzone" id="imagingDropZone" data-state="idle">
+          <p><strong>Drop one or two films onto this window</strong>, paste a screenshot with <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>V</kbd>, or choose a file for each view below.</p>
+          <p class="imaging-dropzone-status" id="imagingDropStatus" role="status" aria-live="polite">Tick the statement in step 1 to add films.</p>
+        </div>
+        <div class="imaging-field-grid imaging-preview-grid" id="radiographPreviewGrid">
+          <div class="imaging-file" id="standingPaField" data-slot="frontal">
+            <div class="imaging-file-head"><label for="standingPaInput">Standing frontal (PA/AP)</label><button class="imaging-file-remove" id="removeFrontalFilm" type="button" data-remove-slot="frontal" hidden>Remove</button></div>
+            <input id="standingPaInput" type="file" accept="image/jpeg,image/png,image/webp,.dcm,.dicom,application/dicom" disabled>
+            <label class="imaging-file-picker" id="standingPaPicker" for="standingPaInput" aria-disabled="true">Choose frontal file</label>
+            <p class="imaging-file-status" id="standingPaStatus" aria-live="polite">Not provided</p>
+            <figure class="imaging-preview"><img id="standingPaPreview" alt="Standing frontal film preview" hidden><canvas class="imaging-thumb" id="standingPaThumb" role="img" aria-label="Standing frontal DICOM preview" hidden></canvas><figcaption id="standingPaPlaceholder">A thumbnail appears here for PNG, JPEG, WebP or DICOM.</figcaption></figure>
+            <div class="imaging-laterality">
+              <label for="frontalLateralitySelect">Patient right is on the image</label>
+              <select class="imaging-projection" id="frontalLateralitySelect" aria-describedby="frontalLateralityNote"><option value="unconfirmed" selected>not confirmed</option><option value="left">left (AP, radiological view)</option><option value="right">right (PA, viewed from behind)</option></select>
+              <p class="imaging-laterality-note" id="frontalLateralityNote">Check the film's L/R marker: the apex side and signed apical translation depend on it.</p>
+            </div>
+            <!-- Projection semantics read by the analysis: PA = patient right on image right, AP = patient right on image left. Driven by the control above. -->
+            <select class="imaging-projection" id="frontalProjectionSelect" aria-label="Standing frontal projection" hidden tabindex="-1"><option value="pa">PA projection</option><option value="ap">AP projection</option></select>
+          </div>
+          <div class="imaging-file" id="standingLateralField" data-slot="lateral">
+            <div class="imaging-file-head"><label for="standingLateralInput">Standing lateral</label><button class="imaging-file-remove" id="removeLateralFilm" type="button" data-remove-slot="lateral" hidden>Remove</button></div>
+            <input id="standingLateralInput" type="file" accept="image/jpeg,image/png,image/webp,.dcm,.dicom,application/dicom" disabled>
+            <label class="imaging-file-picker" id="standingLateralPicker" for="standingLateralInput" aria-disabled="true">Choose lateral file</label>
+            <p class="imaging-file-status" id="standingLateralStatus" aria-live="polite">Not provided</p>
+            <figure class="imaging-preview"><img id="standingLateralPreview" alt="Standing lateral film preview" hidden><canvas class="imaging-thumb" id="standingLateralThumb" role="img" aria-label="Standing lateral DICOM preview" hidden></canvas><figcaption id="standingLateralPlaceholder">A thumbnail appears here for PNG, JPEG, WebP or DICOM.</figcaption></figure>
+          </div>
+        </div>
+        <div class="imaging-slot-actions">
+          <button class="lab-button" id="swapImagingViews" type="button" disabled>Swap frontal ⇄ lateral</button>
+          <p class="imaging-assign-note" id="imagingAssignNote" hidden></p>
+        </div>
+
+        <details class="source-spec">
+          <summary>What makes a good source image (read this if detection is poor)</summary>
+          <div class="source-spec-body">
+            <p><strong>Detection quality is limited far more by the source image than by the algorithm.</strong> The most common causes of a poor trace, in order:</p>
+            <ul>
+              <li><strong>Too small.</strong> Aim for <strong>at least 1200&nbsp;px along the spine</strong> (2000&nbsp;px+ is better). Below roughly 800&nbsp;px an endplate is only 2–3 pixels thick and no edge fit can be reliable. A thumbnail-sized export cannot be rescued.</li>
+              <li><strong>Missing femoral heads.</strong> Pelvic incidence and pelvic tilt are <em>geometrically undefined</em> without them. The lateral must include <strong>both femoral heads and the S1 endplate</strong>, or PI/PT will stay blank by design.</li>
+              <li><strong>Heavy JPEG compression.</strong> Blocking artefacts sit exactly where endplate edges are. Export <strong>PNG</strong> where you can; if JPEG, use maximum quality.</li>
+              <li><strong>Screenshot of a viewer.</strong> Re-captured images carry the viewer's own windowing, overlays and scaling. Export from PACS instead.</li>
+              <li><strong>Burned-in annotation across the spine.</strong> Markers and text over the column are read as edges.</li>
+            </ul>
+            <p><strong>Ideal:</strong> full-length standing PA/AP and lateral (EOS or stitched), PNG, ≥1200&nbsp;px along the spine, 8–16-bit greyscale, standard orientation, collimated to the body but including C2 down to the femoral heads. Anonymise before import.</p>
+            <p class="source-spec-note">Distance outputs (SVA, apical translation) additionally need the mm-per-pixel value entered in step 3. PNG, JPEG and WebP carry no spacing, so it must be typed; a DICOM header supplies it automatically when present.</p>
+          </div>
+        </details>
+
+        <details class="imaging-coverage-details" id="imagingCoverageDetails" hidden>
+          <summary>Coverage declarations · optional · <span id="imagingCoverageScope">for the films added</span></summary>
+          <p>Pre-filled when you add a film. Untick any region your films do not show. These are your declarations, not automated image findings.</p>
+          <div class="imaging-coverage">
+            <label class="imaging-check"><input class="imaging-coverage-input" type="checkbox" value="occiput-cervical"><span>Occiput and cervical spine are visible when required</span></label>
+            <label class="imaging-check"><input class="imaging-coverage-input" type="checkbox" value="thoracic"><span>Thoracic spine and curve endpoints are visible</span></label>
+            <label class="imaging-check"><input class="imaging-coverage-input" type="checkbox" value="lumbar-pelvis"><span>Lumbar spine, sacrum, pelvis, and both femoral heads are visible</span></label>
+            <label class="imaging-check"><input class="imaging-coverage-input" type="checkbox" value="lower-limb"><span>Lower-limb compensation coverage is present if it will be modeled</span></label>
+          </div>
+        </details>
+
+        <details class="imaging-supine-details" id="imagingSupineDetails">
+          <summary>Supine comparison film · optional · <span class="untested-badge experimental">Highly experimental</span></summary>
+          <div class="imaging-file" id="supineField" data-experimental="true">
+            <label for="supineInput">Supine comparison image or DICOM</label>
+            <select class="imaging-projection" id="supineKindSelect" aria-label="Supine comparison source type">
+              <option value="supine-lateral">Supine lateral radiograph</option>
+              <option value="scout-lateral">CT scout / topogram (lateral)</option>
+              <option value="ct-sagittal">CT sagittal reformat (lateral)</option>
+            </select>
+            <input id="supineInput" type="file" accept="image/jpeg,image/png,image/webp,.dcm,.dicom,application/dicom" disabled>
+            <label class="imaging-file-picker" id="supinePicker" for="supineInput" aria-disabled="true">Choose supine file</label>
+            <p class="imaging-file-status" id="supineStatus">Not provided</p>
+            <p class="imaging-file-note">Comparing a standing film with a supine one shows how much of the sagittal shape is <em>positional</em>. A CT sagittal reformat works as the supine source and usually has the best endplate detail, but it is a single plane through a rotated spine and yields <strong>sagittal measurements only</strong> — never a coronal Cobb. Place landmarks manually on both.</p>
+          </div>
+        </details>
+
+        <div class="imaging-status" id="imagingPreflightStatus" data-state="idle" role="status" aria-live="polite">
+          <strong>Nothing staged</strong>
+          <p>Add a frontal or lateral film. No file name, patient name, MRN, UID, or pixel data is written to app storage.</p>
+        </div>
+        <div class="imaging-actions">
+          <label class="auto-run-toggle imaging-autorun" for="autoLandmarkRunOnStage"><input id="autoLandmarkRunOnStage" type="checkbox" checked><span>Analyze automatically after staging</span></label>
+          <button class="lab-button primary" id="stagePatientImaging" type="button">Stage &amp; analyze</button>
+        </div>
+        <div class="imaging-clear-row">
+          <button class="lab-button imaging-clear-request" id="requestClearPatientImaging" type="button">Clear local files…</button>
+          <div class="imaging-clear-confirm" id="clearImagingConfirm" role="group" aria-labelledby="clearImagingConfirmText" hidden>
+            <p id="clearImagingConfirmText">Discard the selected films?</p>
+            <button class="lab-button danger-soft" id="clearPatientImaging" type="button">Discard films</button>
+            <button class="lab-button" id="cancelClearPatientImaging" type="button">Keep them</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="imaging-step imaging-measurement-step" id="imagingMeasurementStep" aria-labelledby="imagingMeasurementHeading" hidden>
+        <h3 id="imagingMeasurementHeading">3. Review landmarks and measurements</h3>
+        <p><strong>How this works:</strong> the worksheet below is what actually updates the case. Fill it either by running the beta and pressing <em>Transfer selected values to worksheet</em>, or by typing your own reviewed measurements straight in. Then press <em>Apply measurements</em>. Only the fields you fill are changed — anything you leave blank keeps the value the case already has, so you can update one measurement without disturbing the rest.</p>
+        <p class="imaging-measurement-callout"><strong>Experimental beta:</strong> automatic points are heuristic estimates, not validated radiographic measurements. Applying accepted values changes the reference-atlas alignment, not the patient’s exact bone surfaces.</p>
+
+        <section class="auto-landmark-beta" id="autoLandmarkBeta" aria-labelledby="autoLandmarkHeading">
+          <div class="auto-landmark-head">
+            <div><h4 id="autoLandmarkHeading">Automatic landmark calibration</h4><p>Runs entirely in this browser using contrast normalization, paired-edge spine-corridor tracking, local endplate-line search, and pelvic radial-symmetry checks. The result is a reviewable starting point—not a clinical measurement.</p></div>
+            <span class="beta-badge">Experimental beta</span>
+          </div>
+          <div class="auto-landmark-controls">
+            <label class="auto-run-toggle" for="autoLandmarkNeural"><input id="autoLandmarkNeural" type="checkbox" checked><span>Frontal: use the embedded neural vertebra-corner model (AP whole-spine, experimental) instead of the classical corridor search when it is available</span></label>
+            <p class="auto-landmark-neural-status" id="autoLandmarkNeuralStatus" aria-live="polite">Neural model: not loaded yet. It loads on first use and runs only in this browser.</p>
+            <div class="auto-landmark-control"><label for="autoLandmarkAnteriorSide">Lateral orientation</label><select id="autoLandmarkAnteriorSide"><option value="auto">Choose orientation — signed LL/TK/CL, PT and SVA withheld</option><option value="left">Anterior is image-left</option><option value="right">Anterior is image-right</option></select></div>
+            <div class="auto-landmark-control"><label for="autoLandmarkWindow">Image window</label><select id="autoLandmarkWindow"><option value="enhanced">Auto-windowed (recommended)</option><option value="original">Original exposure</option></select></div>
+            <div class="auto-landmark-control"><label for="autoLandmarkFrontalScale">Frontal spacing · optional</label><input id="autoLandmarkFrontalScale" type="number" min="0.01" max="2" step="0.001" inputmode="decimal" placeholder="mm / source pixel"></div>
+            <div class="auto-landmark-control"><label for="autoLandmarkLateralScale">Lateral spacing · optional</label><input id="autoLandmarkLateralScale" type="number" min="0.01" max="2" step="0.001" inputmode="decimal" placeholder="mm / source pixel"></div>
+          </div>
+          <div class="guide-controls" id="guideControls">
+            <div class="guide-controls-head">
+              <div><strong>Optional guided calibration</strong><p>Before auto-run, you can place a few anchor points to steer the detector. After detection, drag colored handles directly on the preview to refine lines and dots.</p></div>
+              <span class="beta-badge">Assist mode</span>
+            </div>
+            <div class="guide-button-grid">
+              <button class="lab-button" id="guideFrontalTop" type="button" data-guide="frontal.top">Mark frontal top</button>
+              <button class="lab-button" id="guideFrontalBottom" type="button" data-guide="frontal.bottom">Mark frontal bottom</button>
+              <button class="lab-button" id="guideFrontalApex" type="button" data-guide="frontal.apex">Mark frontal apex</button>
+              <button class="lab-button" id="guideLateralC2" type="button" data-guide="lateral.c2">Mark lateral C2</button>
+              <button class="lab-button" id="guideLateralS1" type="button" data-guide="lateral.s1">Mark lateral S1</button>
+              <button class="lab-button" id="guideLateralHip" type="button" data-guide="lateral.hip">Mark lateral hip center</button>
+            </div>
+            <div class="guide-inline-actions">
+              <button class="lab-button" id="showGuidePreview" type="button">Show staged image preview</button>
+              <button class="lab-button danger-soft" id="clearGuidePoints" type="button">Clear guide points</button>
+            </div>
+            <p class="guide-hint" id="guideHint"><strong>Guide points steer the automatic detector — they do nothing for manual calibration.</strong> Use them when the automatic trace drifts: pick a guide button, click that spot on the preview, then re-run calibration. C2 and S1 pin the ends of the search corridor, hip sets the femoral-head axis, and apex fixes the curve apex. If you would rather place every landmark yourself, use manual calibration instead — it needs no guides. After a result appears you can drag anything on the overlay: the blue centreline dots reshape the traced path and the endplate lines re-fit along it, and the endpoint handles fine-tune individual lines. Images are auto-windowed for detection; switch to Original exposure above to compare.</p>
+          </div>
+          <section class="manual-cal" id="manualCal">
+            <div class="manual-cal-head">
+              <div>
+                <strong>Manual landmark calibration</strong>
+                <p>Tap the prompted points straight onto the image. This bypasses automatic detection entirely and is the accurate route when a source image is small, compressed, or a screen capture.</p>
+              </div>
+              <span class="beta-badge">Recommended</span>
+            </div>
+            <div class="manual-cal-actions">
+              <button class="lab-button primary" id="manualStartLateral" type="button">Standing lateral: 14 taps</button>
+              <button class="lab-button primary" id="manualStartFrontal" type="button">Frontal: 5 taps</button>
+              <button class="lab-button" id="manualStartSupine" type="button" hidden>Supine: 8 taps</button>
+              <button class="lab-button" id="manualUndo" type="button" disabled>Undo</button>
+              <button class="lab-button danger-soft" id="manualReset" type="button" disabled>Reset</button>
+            </div>
+            <div class="manual-prompt" id="manualPrompt" hidden>
+              <div class="manual-prompt-bar" role="progressbar" aria-label="Manual calibration progress" aria-valuemin="0" aria-valuemax="14" aria-valuenow="0"><span id="manualProgressFill"></span></div>
+              <div class="manual-prompt-copy" role="status" aria-live="polite" aria-atomic="true">
+                <span class="manual-step" id="manualStep">Step 1 / 14</span>
+                <strong id="manualTarget">—</strong>
+                <p id="manualHint">—</p>
+              </div>
+            </div>
+            <div class="manual-readout" id="manualReadout" hidden></div>
+            <!-- Focus-mode controls live inside the modal dialog: showModal() puts the dialog in the top layer and makes everything outside it inert, so controls outside could not be clicked. -->
+            <div class="manual-focus-hint" id="manualFocusHint" aria-hidden="true">Tap the point on the image</div>
+            <div class="manual-focus-bar" id="manualFocusBar" role="toolbar" aria-label="Manual calibration controls">
+              <button type="button" id="manualFocusUndo">Undo</button>
+              <button type="button" id="manualFocusRedo" disabled>Redo</button>
+              <button type="button" id="manualFocusSkip">Skip point</button>
+              <button type="button" id="manualFocusDone" class="done">Done</button>
+            </div>
+          </section>
+
+          <section class="flex-compare" id="flexCompare" hidden>
+            <div class="flex-compare-head">
+              <div>
+                <strong>Standing vs supine — positional change</strong>
+                <p id="flexCompareSubtitle">Regional sagittal angles from both films, and how much of each is positional.</p>
+              </div>
+              <span class="untested-badge experimental">Highly experimental</span>
+            </div>
+            <div class="flex-compare-rows" id="flexCompareRows"></div>
+            <p class="flex-compare-note" id="flexCompareNote"></p>
+            <div class="flex-compare-actions">
+              <button class="lab-button" id="flexApply" type="button" disabled>Record positional change</button>
+            </div>
+            <p class="flex-compare-disclosure">This compares two positions, so it measures <strong>positional change under gravity</strong> — not segmental stiffness and not fusion. A segment that barely changes is flagged for review only; ankylosis is a diagnosis requiring CT and clinical correlation. Formal structural assessment uses side-bending films, which this does not replace. Coronal Cobb is never derived from a sagittal source.</p>
+          </section>
+
+          <div class="landmark-editor-summary" id="landmarkEditorSummary" hidden>
+            <strong id="landmarkEditorTitle">Editable overlay ready</strong>
+            <p id="landmarkEditorDescription">Run the detector or show a staged image preview, then click or drag a handle. This beta recalculates measurements from your edited landmarks.</p>
+          </div>
+          <div class="auto-landmark-actions">
+            <button class="lab-button primary" id="runAutoLandmark" type="button">Run local auto-calibration</button>
+            <button class="lab-button" id="transferAutoLandmark" type="button" disabled>Transfer selected values to worksheet</button>
+            <button class="lab-button" id="applyAutoLandmark" type="button" disabled>Apply selected values to model</button>
+            <button class="lab-button danger-soft" id="clearAutoLandmark" type="button" disabled>Clear beta result</button>
+          </div>
+          <p class="auto-landmark-status" id="autoLandmarkStatus" data-state="idle" role="status" aria-live="polite">Stage a standing frontal and/or lateral film — PNG, JPEG, WebP, or single-frame DICOM — to enable automatic point calibration.</p>
+          <ul class="auto-landmark-status-notes" id="autoLandmarkStatusNotes" hidden></ul>
+          <div class="auto-landmark-preview-grid" id="autoLandmarkPreviewGrid" hidden>
+            <figure class="auto-landmark-preview" id="autoLandmarkFrontalFigure"><canvas id="autoLandmarkFrontalCanvas" aria-label="Frontal radiograph with experimental automatic landmarks"></canvas><figcaption><span>Frontal corridor, vertebral centers, and Cobb endplates</span><span class="auto-confidence" id="autoLandmarkFrontalConfidence" data-level="low">—</span></figcaption></figure>
+            <figure class="auto-landmark-preview" id="autoLandmarkLateralFigure"><canvas id="autoLandmarkLateralCanvas" aria-label="Lateral radiograph with experimental automatic landmarks"></canvas><figcaption><span>Lateral regional endplates, sacral line, and pelvic point</span><span class="auto-confidence" id="autoLandmarkLateralConfidence" data-level="low">—</span></figcaption></figure><figure class="auto-landmark-preview" id="autoLandmarkSupineFigure" hidden><canvas id="autoLandmarkSupineCanvas" aria-label="Supine comparison image with manually placed landmarks"></canvas><figcaption><span>Supine comparison · manual landmarks only</span><span class="auto-confidence" id="autoLandmarkSupineConfidence" data-level="low">manual</span></figcaption></figure>
+          </div>
+          <div class="auto-landmark-results" id="autoLandmarkResults" hidden></div>
+          <details class="auto-landmark-disclosure"><summary>Measurement definitions, confidence, and limits</summary><p>Cobb angle follows the standard end-vertebra endplate definition. PI is the angle between the sacral-endplate normal and the line to the bicoxofemoral axis; PT is referenced to vertical; PI = PT + sacral slope. LL, TK, and C2–C7 values use region-specific endplate-line differences. Definitions are based on established radiographic conventions described by <a href="https://radiopaedia.org/articles/cobb-angle" target="_blank" rel="noreferrer">Radiopaedia’s Cobb-angle reference</a>, <a href="https://radiopaedia.org/articles/pelvic-incidence" target="_blank" rel="noreferrer">pelvic-incidence reference</a>, and the open-access <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7302896/" target="_blank" rel="noreferrer">spinopelvic-balance review</a>. This beta does not identify vertebral levels with a validated clinical model or validate image acquisition. DICOM detector spacing is corrected for radiographic magnification only when the header states a magnification factor or source distances, and that correction is itself an estimate; otherwise distances are reported at the detector plane. The patient side of a frontal curve follows the laterality you confirm at intake. Confidence reflects internal edge/continuity consistency only—not diagnostic accuracy.</p></details>
+        </section>
+
+        <div class="imaging-measurement-grid">
+          <div class="imaging-measurement-field"><label for="imagingPiInput">Pelvic incidence</label><div class="imaging-measurement-input-wrap"><input class="imaging-measurement-input" id="imagingPiInput" type="number" min="30" max="80" step="0.1" inputmode="decimal" placeholder="current value"><span class="imaging-measurement-unit">°</span></div><small>30° to 80° model domain</small></div>
+          <div class="imaging-measurement-field"><label for="imagingLlInput">Lumbar lordosis</label><div class="imaging-measurement-input-wrap"><input class="imaging-measurement-input" id="imagingLlInput" type="number" min="10" max="80" step="0.1" inputmode="decimal" placeholder="current value"><span class="imaging-measurement-unit">°</span></div><small>Use the same endplate convention consistently</small></div>
+          <div class="imaging-measurement-field"><label for="imagingTkInput">Thoracic kyphosis</label><div class="imaging-measurement-input-wrap"><input class="imaging-measurement-input" id="imagingTkInput" type="number" min="10" max="70" step="0.1" inputmode="decimal" placeholder="current value"><span class="imaging-measurement-unit">°</span></div><small>10° to 70° model domain</small></div>
+          <div class="imaging-measurement-field"><label for="imagingClInput">C2–C7 angle</label><div class="imaging-measurement-input-wrap"><input class="imaging-measurement-input" id="imagingClInput" type="number" min="-50" max="80" step="0.1" inputmode="decimal" placeholder="current value"><span class="imaging-measurement-unit">°</span></div><small>Negative values represent kyphotic convention</small></div>
+          <div class="imaging-measurement-field"><label for="imagingPtInput">Pelvic tilt</label><div class="imaging-measurement-input-wrap"><input class="imaging-measurement-input" id="imagingPtInput" type="number" min="5" max="45" step="0.1" inputmode="decimal" placeholder="current value"><span class="imaging-measurement-unit">°</span></div><small>5° to 45° model domain</small></div>
+          <div class="imaging-measurement-field"><label for="imagingSvaInput">C7 SVA · optional</label><div class="imaging-measurement-input-wrap"><input class="imaging-measurement-input" id="imagingSvaInput" type="number" min="-30" max="30" step="0.1" inputmode="decimal" placeholder="Leave unchanged"><span class="imaging-measurement-unit">cm</span></div><small>Requires calibrated distance measurement</small></div>
+          <div class="imaging-measurement-field"><label for="imagingPrimaryCobbInput">Primary Cobb · optional</label><div class="imaging-measurement-input-wrap"><input class="imaging-measurement-input" id="imagingPrimaryCobbInput" type="number" min="0" max="120" step="0.1" inputmode="decimal" placeholder="current value"><span class="imaging-measurement-unit">°</span></div><small>Standing frontal image</small></div>
+          <div class="imaging-measurement-field"><label for="imagingPrimaryDirection">Primary apex</label><select class="imaging-measurement-select" id="imagingPrimaryDirection"><option value="preserve">Preserve current</option><option value="right">Right</option><option value="left">Left</option></select><small>Patient-side convention</small></div>
+          <div class="imaging-measurement-field"><label for="imagingSecondaryCobbInput">Secondary Cobb · optional</label><div class="imaging-measurement-input-wrap"><input class="imaging-measurement-input" id="imagingSecondaryCobbInput" type="number" min="0" max="100" step="0.1" inputmode="decimal" placeholder="current value"><span class="imaging-measurement-unit">°</span></div><small>Leave blank when not measured</small></div>
+          <div class="imaging-measurement-field"><label for="imagingTranslationInput">Apical translation · optional</label><div class="imaging-measurement-input-wrap"><input class="imaging-measurement-input" id="imagingTranslationInput" type="number" min="-150" max="150" step="1" inputmode="decimal" placeholder="current value"><span class="imaging-measurement-unit">mm</span></div><small>Requires calibrated distance measurement</small></div>
+        </div>
+        <p class="imaging-measurement-status" id="imagingMeasurementStatus" role="status" aria-live="polite">Source staging is required before measurements can be applied.</p>
+        <div class="imaging-measurement-actions">
+          <button class="lab-button" id="prefillImagingMeasurements" type="button">Use current case as starting values</button>
+          <button class="lab-button primary" id="applyImagingMeasurements" type="button">Apply measurements &amp; review model</button>
+        </div>
+      </section>
+
+      <section class="imaging-step" aria-labelledby="imagingGateHeading">
+        <h3 id="imagingGateHeading">Validation boundary</h3>
+        <p>Standing PNG, JPEG, WebP, or single-frame DICOM radiographs: experimental local landmark estimation plus explicit user review and transfer to the atlas pose. The application does not claim that detected points are clinically accurate or that the atlas is the patient. CT and hybrid intake are blocked and labelled untested in this build: CT series decoding, coherent-series validation, segmentation, level numbering, transitional-anatomy review, per-level approval, and (for hybrid) per-vertebra standing registration have not been implemented or tested here.</p>
+        <details class="imaging-why-ct">
+          <summary>Why no CT or hybrid source?</summary>
+          <p>Standing radiographs are the only enabled source in this build. CT series decoding has not been implemented or tested here, so the CT and hybrid routes stay blocked until they pass validation.</p>
+          <div class="imaging-path-grid">
+            <label class="imaging-path"><input type="radio" name="imagingPath" value="radiographs" checked><span><strong>Standing frontal and/or lateral</strong><span>Best first input for weight-bearing coronal and sagittal measurements. No exact 3D bone or screw corridor.</span></span></label>
+            <label class="imaging-path" data-untested="true"><input type="radio" name="imagingPath" value="ct" disabled aria-describedby="ctUntestedNote"><span><strong>CT DICOM series <span class="untested-badge">Blocked · untested</span></strong><span id="ctUntestedNote">CT series decoding is not implemented in this standalone build and has not been tested. This route stays blocked until it is validated.</span></span></label>
+            <label class="imaging-path" data-untested="true"><input type="radio" name="imagingPath" value="hybrid" disabled aria-describedby="hybridUntestedNote"><span><strong>Hybrid <span class="untested-badge">Blocked · untested</span></strong><span id="hybridUntestedNote">Depends on the untested CT series intake, so it is blocked with it. Use standing radiographs instead.</span></span></label>
+          </div>
+          <div class="imaging-file" id="ctSeriesField" data-untested="true">
+            <label for="ctSeriesInput">CT DICOM series <span class="untested-badge">Blocked · untested</span></label>
+            <input id="ctSeriesInput" type="file" accept=".dcm,.dicom,application/dicom" multiple disabled>
+            <label class="imaging-file-picker" id="ctSeriesPicker" for="ctSeriesInput" aria-disabled="true">CT intake blocked in this build</label>
+            <p class="imaging-file-status" id="ctSeriesStatus">CT series decoding is untested here and stays blocked until validated.</p>
+          </div>
+        </details>
+      </section>
+    </div>
+  </dialog>
+
+  <dialog id="anatomyLabDialog" aria-labelledby="anatomyLabHeading" aria-describedby="anatomyLabDisclaimer">
+    <div class="dialog-head">
+      <div class="lab-heading-copy">
+        <h2 id="anatomyLabHeading">Anatomy Lab</h2>
+        <p>Manually authored standing-alignment context and focused reference-anatomy inspection</p>
+      </div>
+      <button class="icon-button" id="closeAnatomyLab" type="button" aria-label="Close Anatomy Lab"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div class="dialog-body anatomy-lab-body">
+      <p class="lab-disclaimer" id="anatomyLabDisclaimer"><strong>Reference anatomy only; not patient-specific.</strong> Intact levels use one-subject CT-derived external surfaces when available. Laminectomy, SPO, and PSO retain those intact surfaces with source-bounded planned resection/cut envelopes. TOPS uses derived open post-decompression display shells at both treated vertebrae; they remove triangles from a documented source-bounded posterior mask but are not Boolean surgical models, navigation geometry, or cut-safety validation. Non-rigid anatomy edits may switch a level to the labeled semantic model when no interbody construct depends on the CT reference. Loaded disc-height loss is a user-set geometric percentage, not an MRI or Pfirrmann grade. Shape transforms are not congenital-anomaly models, verified enumeration, or diagnoses. Cervical arthroplasty replaces the disc after discectomy and endplate preparation; TOPS is a posterior-element/facet replacement after automatically linked decompression, not an intervertebral disc replacement.</p>
+
+      <div class="lab-layout">
+        <div class="lab-column">
+          <section class="lab-card" aria-labelledby="globalDeformityHeading">
+            <div class="lab-card-head">
+              <div><h3 id="globalDeformityHeading">Global three-plane shape</h3><p>Start from a deterministic display preset, then refine each axis.</p></div>
+              <span class="lab-section-tag">Whole construct</span>
+            </div>
+            <div class="lab-grid">
+              <div class="lab-field full">
+                <label for="deformityPreset">Measurement-pattern preset</label>
+                <select id="deformityPreset">
+                  <option value="neutral">Neutral reference</option>
+                  <option value="reference-roussouly-3">Roussouly type 3 reference pattern</option>
+                  <option value="moderate-positive-sagittal">Moderate positive sagittal pattern</option>
+                  <option value="flatback">Marked flatback pattern</option>
+                  <option value="thoracic-hyperkyphosis">Thoracic hyperkyphosis pattern</option>
+                  <option value="cervical-kyphosis">Cervical kyphosis pattern</option>
+                  <option value="cervicothoracic-malalignment">Cervicothoracic positive-malalignment pattern</option>
+                  <option value="degenerative-scoliosis">Coronal asymmetry + disc-height-loss pattern</option>
+                  <option value="thoracic-major-curve">Thoracic-major curve pattern</option>
+                  <option value="double-major-curve">Double-major curve pattern</option>
+                  <option value="cervical-coronal-curve">Cervical coronal curve pattern</option>
+                  <option value="junctional-kyphosis">Junctional kyphosis pattern</option>
+                  <option value="custom" hidden>Custom configuration</option>
+                </select>
+                <p class="lab-field-note" id="presetDescription">Explicit editable geometry inputs; never a diagnosis or correction target.</p>
+              </div>
+              <div class="lab-field">
+                <label for="coronalMagnitude">Primary Cobb surrogate</label>
+                <div class="lab-range-row"><input id="coronalMagnitude" type="range" min="0" max="120" step="1" value="0"><output class="lab-value" id="coronalMagnitudeValue" for="coronalMagnitude">0&deg;</output></div>
+                <p class="lab-field-note">Authored rotation distributed across the chain; not a reconstructed radiographic Cobb measurement.</p>
+              </div>
+              <div class="lab-field">
+                <label for="coronalDirection">Coronal curve direction</label>
+                <select id="coronalDirection"><option value="right">Apex right</option><option value="left">Apex left</option></select>
+              </div>
+              <div class="lab-field">
+                <label for="globalAxialRotation">Axial rotation</label>
+                <div class="lab-range-row"><input id="globalAxialRotation" type="range" min="-30" max="30" step="1" value="0"><output class="lab-value" id="globalAxialRotationValue" for="globalAxialRotation">0&deg;</output></div>
+              </div>
+              <div class="lab-field">
+                <label for="pelvicObliquity">Pelvic obliquity <abbr title="Positive drops the patient's right side">R↓</abbr></label>
+                <div class="lab-range-row"><input id="pelvicObliquity" type="range" min="-20" max="20" step="1" value="0"><output class="lab-value" id="pelvicObliquityValue" for="pelvicObliquity">0&deg;</output></div>
+              </div>
+              <div class="lab-field full">
+                <label for="trunkShift">Apical translation</label>
+                <div class="lab-range-row"><input id="trunkShift" type="range" min="-100" max="100" step="1" value="0"><output class="lab-value" id="trunkShiftValue" for="trunkShift">0 mm</output></div>
+                <p class="lab-field-note">Lateral offset of the primary-curve apex from the chain root; positive is toward the patient's right. It moves the apex, not the head: the display keeps the head over the pelvis (0 = not entered).</p>
+              </div>
+            </div>
+            <div class="lab-subsection" aria-labelledby="cervicalContextHeading">
+              <h4 id="cervicalContextHeading">Cervical alignment context</h4>
+              <p>Independent standing-radiograph inputs. They are not inferred from the CT pose or from C2-C7 angle.</p>
+              <div class="lab-grid" style="margin-top:12px">
+                <div class="lab-field"><label for="cervicalSva">C2-C7 SVA</label><div class="lab-range-row"><input id="cervicalSva" type="range" min="-20" max="150" step="1" value="20"><output class="lab-value" id="cervicalSvaValue" for="cervicalSva">20 mm</output></div></div>
+                <div class="lab-field"><label for="t1Slope">T1 slope</label><div class="lab-range-row"><input id="t1Slope" type="range" min="0" max="70" step="1" value="28"><output class="lab-value" id="t1SlopeValue" for="t1Slope">28&deg;</output></div></div>
+                <div class="lab-field"><label for="cbva">Chin-brow vertical angle</label><div class="lab-range-row"><input id="cbva" type="range" min="-30" max="60" step="1" value="5"><output class="lab-value" id="cbvaValue" for="cbva">+5&deg;</output></div></div>
+                <div class="lab-field"><label>Cervical modifier bands</label><p class="lab-state-summary" id="cervicalModifierSummary">cSVA 0 &middot; CBVA 0 &middot; T1S&minus;CL 0</p></div>
+              </div>
+              <p class="lab-field-note" style="margin-top:9px">Ames bands describe classification cohorts, not individual normality or a safe treatment target. Head posture and radiographic convention materially affect CBVA.</p>
+            </div>
+            <div class="lab-subsection" aria-labelledby="standingContextHeading">
+              <h4 id="standingContextHeading">Standing alignment context</h4>
+              <p>User-set posture geometry only; these values are not estimated compensation or outcome predictions.</p>
+              <label class="lab-check" for="lowerExtremitiesVisible"><input id="lowerExtremitiesVisible" type="checkbox" checked><span>Show lower-extremity reference chain</span></label>
+              <div class="lab-grid" style="margin-top:12px">
+                <div class="lab-field">
+                  <label for="hipFlexion">Hip flexion / extension</label>
+                  <div class="lab-range-row"><input id="hipFlexion" type="range" min="-30" max="45" step="1" value="0"><output class="lab-value" id="hipFlexionValue" for="hipFlexion">0&deg;</output></div>
+                </div>
+                <div class="lab-field">
+                  <label for="kneeFlexion">Knee flexion</label>
+                  <div class="lab-range-row"><input id="kneeFlexion" type="range" min="0" max="90" step="1" value="0"><output class="lab-value" id="kneeFlexionValue" for="kneeFlexion">0&deg;</output></div>
+                </div>
+                <div class="lab-field">
+                  <label for="ankleFlexion">Ankle dorsiflexion</label>
+                  <div class="lab-range-row"><input id="ankleFlexion" type="range" min="-30" max="30" step="1" value="0"><output class="lab-value" id="ankleFlexionValue" for="ankleFlexion">0&deg;</output></div>
+                </div>
+                <div class="lab-field">
+                  <label for="pelvicShift">Sagittal pelvic shift</label>
+                  <div class="lab-range-row"><input id="pelvicShift" type="range" min="-100" max="100" step="1" value="0"><output class="lab-value" id="pelvicShiftValue" for="pelvicShift">0 mm</output></div>
+                </div>
+              </div>
+              <p class="lab-field-note" style="margin-top:9px">Positive hip values indicate flexion, positive ankle values dorsiflexion, and positive pelvic shift is anterior in the display coordinate system.</p>
+            </div>
+          </section>
+
+          <section class="lab-card" aria-labelledby="inspectionHeading">
+            <div class="lab-card-head">
+              <div><h3 id="inspectionHeading">Focused inspection</h3><p>Isolate a selected motion segment or its superior bony anatomy.</p></div>
+              <span class="lab-section-tag">Viewport</span>
+            </div>
+            <fieldset class="lab-field inspection-scope">
+              <legend>Inspection scope</legend>
+              <div class="segmented-control">
+                <label><input type="radio" name="inspectionScope" value="level" checked><span>Entire level</span></label>
+                <label><input type="radio" name="inspectionScope" value="body"><span>Single vertebra</span></label>
+              </div>
+            </fieldset>
+            <div class="lab-divider"></div>
+            <label class="lab-check" for="inspectionExplode"><input id="inspectionExplode" type="checkbox"><span>Explode neighboring anatomy for screw-path inspection</span></label>
+            <p class="lab-state-summary" id="inspectionSummary">Ready to isolate L4–L5 as an entire level.</p>
+            <div class="lab-actions" style="margin-top:12px">
+              <button class="lab-button primary" id="inspectSelection" type="button">Isolate selection</button>
+              <button class="lab-button" id="restoreInspection" type="button">Restore full construct</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="lab-column">
+          <section class="lab-card" aria-labelledby="levelFactorsHeading">
+            <div class="lab-card-head">
+              <div><h3 id="levelFactorsHeading">Motion-segment factors</h3><p>Independent reference geometry for each level from occiput to sacrum.</p></div>
+              <span class="lab-section-tag" id="selectedLevelTag">L4–L5</span>
+            </div>
+            <div class="lab-grid">
+              <div class="lab-field full">
+                <label for="anatomyLevelSelect">Level to customize</label>
+                <select id="anatomyLevelSelect"></select>
+              </div>
+              <div class="lab-field full">
+                <label for="morphologyVariant">Reference shape transform</label>
+                <select id="morphologyVariant">
+                  <option value="typical">Typical reference</option>
+                  <option value="hemivertebra-left">Unilateral wedge proportion - left</option>
+                  <option value="hemivertebra-right">Unilateral wedge proportion - right</option>
+                  <option value="butterfly">Midline-cleft proportion</option>
+                  <option value="block-fused">Tall-body proportion</option>
+                  <option value="transitional">Broad transitional proportion</option>
+                </select>
+                <p class="lab-field-note">Simple display scaling only. This does not reproduce pedicle/facet/canal topology, join levels, verify enumeration, or establish a diagnosis or corridor.</p>
+              </div>
+              <div class="lab-field">
+                <label for="discHeightLoss">Loaded disc-height loss</label>
+                <div class="lab-range-row"><input id="discHeightLoss" type="range" min="0" max="95" step="1" value="0"><output class="lab-value" id="discHeightLossValue" for="discHeightLoss">0%</output></div>
+                <p class="lab-field-note">Maximum leaves a 5% display gap so the motion segment remains visible.</p>
+              </div>
+              <div class="lab-field">
+                <label for="sagittalWedge">Sagittal wedge</label>
+                <div class="lab-range-row"><input id="sagittalWedge" type="range" min="-25" max="25" step="1" value="0"><output class="lab-value" id="sagittalWedgeValue" for="sagittalWedge">0&deg;</output></div>
+              </div>
+              <div class="lab-field">
+                <label for="coronalWedge">Coronal wedge</label>
+                <div class="lab-range-row"><input id="coronalWedge" type="range" min="-20" max="20" step="1" value="0"><output class="lab-value" id="coronalWedgeValue" for="coronalWedge">0&deg;</output></div>
+              </div>
+              <div class="lab-field">
+                <label for="levelAxialRotation">Level axial rotation</label>
+                <div class="lab-range-row"><input id="levelAxialRotation" type="range" min="-30" max="30" step="1" value="0"><output class="lab-value" id="levelAxialRotationValue" for="levelAxialRotation">0&deg;</output></div>
+              </div>
+              <div class="lab-field">
+                <label for="apTranslation">AP translation</label>
+                <div class="lab-range-row"><input id="apTranslation" type="range" min="-15" max="15" step="1" value="0"><output class="lab-value" id="apTranslationValue" for="apTranslation">0 mm</output></div>
+              </div>
+              <div class="lab-field">
+                <label for="lateralTranslation">Lateral translation</label>
+                <div class="lab-range-row"><input id="lateralTranslation" type="range" min="-15" max="15" step="1" value="0"><output class="lab-value" id="lateralTranslationValue" for="lateralTranslation">0 mm</output></div>
+              </div>
+              <div class="lab-field full"><p class="lab-field-note">Signed convention — every positive value acts toward the patient's <strong>right</strong>, except AP translation which is anterior. Positive lateral translation moves the level to the right; a positive coronal wedge is right-sided (convex right), so the spine above it tilts toward the left, as a right-sided hemivertebra does; positive axial rotation turns the vertebral body to the right; positive sagittal wedge is kyphosing (anteriorly wedged), negative is lordosing.</p></div>
+              <div class="lab-field">
+                <label for="facetHypertrophy">Facet hypertrophy</label>
+                <div class="lab-range-row"><input id="facetHypertrophy" type="range" min="0" max="100" step="1" value="0"><output class="lab-value" id="facetHypertrophyValue" for="facetHypertrophy">0%</output></div>
+              </div>
+              <div class="lab-field">
+                <label for="osteophyteBurden">Osteophyte burden</label>
+                <div class="lab-range-row"><input id="osteophyteBurden" type="range" min="0" max="100" step="1" value="0"><output class="lab-value" id="osteophyteBurdenValue" for="osteophyteBurden">0%</output></div>
+              </div>
+            </div>
+            <details class="lab-disclosure">
+              <summary>Advanced bony geometry</summary>
+              <div class="lab-disclosure-body">
+                <p class="lab-disclosure-note">Schematic scale factors for reference visualization only. They are never a stenosis assessment, pedicle-screw safety assessment, or implant-sizing recommendation.</p>
+                <div class="lab-grid">
+                  <div class="lab-field">
+                    <label for="bodyWidthScale">Primary bony mesh width</label>
+                    <div class="lab-range-row"><input id="bodyWidthScale" type="range" min="50" max="150" step="1" value="100"><output class="lab-value" id="bodyWidthScaleValue" for="bodyWidthScale">100%</output></div>
+                  </div>
+                  <div class="lab-field">
+                    <label for="bodyDepthScale">Primary bony mesh depth</label>
+                    <div class="lab-range-row"><input id="bodyDepthScale" type="range" min="50" max="150" step="1" value="100"><output class="lab-value" id="bodyDepthScaleValue" for="bodyDepthScale">100%</output></div>
+                  </div>
+                  <div class="lab-field">
+                    <label for="pedicleScale">Pedicle component scale</label>
+                    <div class="lab-range-row"><input id="pedicleScale" type="range" min="50" max="150" step="1" value="100"><output class="lab-value" id="pedicleScaleValue" for="pedicleScale">100%</output></div>
+                  </div>
+                  <div class="lab-field">
+                    <label for="canalScale">Canal reference-overlay scale</label>
+                    <div class="lab-range-row"><input id="canalScale" type="range" min="50" max="150" step="1" value="100"><output class="lab-value" id="canalScaleValue" for="canalScale">100%</output></div>
+                  </div>
+                </div>
+              </div>
+            </details>
+            <div class="lab-divider"></div>
+            <div class="lab-actions">
+              <button class="lab-button danger-soft" id="resetCurrentLevel" type="button">Reset current level</button>
+              <button class="lab-button" id="resetAllAnatomy" type="button">Reset all anatomy factors</button>
+            </div>
+            <p class="lab-state-summary" id="levelFactorSummary">Occiput–C1 uses neutral reference factors.</p>
+          </section>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="sr-only" id="liveRegion" aria-live="polite"></div>
+
+  <!--
+    Direct-file-safe dependency bootstrap.
+    Three.js r160 and OrbitControls are embedded below as a pinned IIFE runtime,
+    eliminating CDN, import-map, and file:// failure modes. This is also the
+    deterministic asset model required by future WKWebView/Android WebView shells.
+  -->
+  <script>

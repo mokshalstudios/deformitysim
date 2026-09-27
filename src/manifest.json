@@ -1,0 +1,32 @@
+{
+  "note": "Fragments of spine_simulator.html in document order. Build with: node tools/build.js. Each JS fragment under js/app/ is a slice of ONE classic <script> scope; they share top-level bindings. js/radiograph/*.js are slices of ONE IIFE (the radiograph module).",
+  "fragments": [
+    "html/00-head.html",
+    "css/app.css",
+    "html/01-launch-gate.html",
+    "js/00-launch-gate.js",
+    "html/02-markup.html",
+    "js/01-boot.js",
+    "html/03-three-open.html",
+    "vendor/three-r160-orbitcontrols.js",
+    "html/04-app-open.html",
+    "js/app/01-data.js",
+    "js/app/02-engine.js",
+    "js/app/03-state-dom.js",
+    "js/app/04-scene.js",
+    "js/app/05-gait.js",
+    "js/app/06-interaction.js",
+    "js/app/07-test-surface.js",
+    "html/05-radiograph-open.html",
+    "js/radiograph/01-state-editor.js",
+    "js/radiograph/02-manual.js",
+    "js/radiograph/03-raster.js",
+    "js/radiograph/04-classical.js",
+    "js/radiograph/05-analyze.js",
+    "js/radiograph/06-results-ui.js",
+    "js/radiograph/07-run-init.js",
+    "html/06-showcase-open.html",
+    "js/showcase.js",
+    "html/07-tail.html"
+  ]
+}

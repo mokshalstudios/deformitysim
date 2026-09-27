@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software in research or teaching, please cite it as below."
+title: "DeformitySim: an open-source offline three-plane spinal deformity simulator with on-device radiograph landmarking"
+version: 0.23.0-alpha
+date-released: 2026-09-27
+license: Apache-2.0
+type: software
+# Authors: confirm the full software author list and ORCIDs before the first public release.
+authors:
+  - family-names: Porwal
+    given-names: Mokshal H.
+keywords:
+  - spine
+  - spinal deformity
+  - sagittal alignment
+  - surgical education
+  - radiograph measurement
+  - Cobb angle
+  - offline
+  - privacy

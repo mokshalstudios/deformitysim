@@ -1,0 +1,83 @@
+# DeformitySim — private research deployment
+# Apache 2.4 / DreamHost shared hosting
+
+# ------------------------------------------------------- routing / HTTPS ----
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # PHP entry points enforce the configured canonical HTTPS origin. Do not
+  # build redirects from HTTP_HOST here: an attacker controls that header.
+  # The only anonymous static files are the non-sensitive manifest and icons.
+
+  # The simulator is only ever delivered through app.php, which checks the
+  # session first. A stray .html copy in the web root stays unreachable.
+  RewriteRule \.(html|htm)$ - [F,L,NC]
+
+  # Defense in depth for the supported (but discouraged) web-root fallback.
+  # Its own private/.htaccess also denies everything.
+  RewriteRule ^private(?:/|$) - [F,L,NC]
+</IfModule>
+
+# ------------------------------------------------------ deny sensitive -----
+<FilesMatch "(?i:(?:\.(?:html|htm|md|json|bak|sample|sql|zip|tar|gz|ini|sh|lock|tmp)|\.log(?:\.[0-9]+)?)$)">
+  Require all denied
+</FilesMatch>
+
+# Never expose the shared auth library directly.
+<FilesMatch "(?i:^(auth|config)\.php(?:[.~_-].*)?$)">
+  Require all denied
+</FilesMatch>
+
+# Editor/backup suffixes on any PHP entry point must never become source files.
+<FilesMatch "(?i:\.php(?:[.~_-].*)$)">
+  Require all denied
+</FilesMatch>
+
+# Dotfiles.
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+
+# ------------------------------------------------------------ hardening ----
+# -ExecCGI is deliberately omitted: depending on how PHP is wired on the plan
+# it can stop PHP itself from running. Directory listing and SSI are disabled.
+Options -Indexes -Includes
+ServerSignature Off
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "no-referrer"
+  Header always set X-Robots-Tag "noindex, nofollow, noarchive"
+  # Do not advertise the PHP version.
+  Header always unset X-Powered-By
+</IfModule>
+
+# ------------------------------------------------------------ transfer -----
+# The simulator is a single ~3.8 MB HTML file; compression is what makes it
+# load quickly. Text only — never re-compress images.
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/javascript application/javascript application/json
+</IfModule>
+
+# ------------------------------------------------------------- PWA --------
+# The home-screen manifest and its icons are the only static assets that may be
+# fetched without a session; they contain no clinical content.
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+</IfModule>
+
+<FilesMatch "^(manifest\.webmanifest|icon-[0-9]+(-maskable)?\.png)$">
+  Require all granted
+</FilesMatch>
+
+<IfModule mod_headers.c>
+  <Files "manifest.webmanifest">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </Files>
+  <FilesMatch "^icon-[0-9]+(-maskable)?\.png$">
+    Header set Cache-Control "public, no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
+
+DirectoryIndex index.php

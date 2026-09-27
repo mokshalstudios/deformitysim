@@ -1,0 +1,69 @@
+DeformitySim
+Copyright 2026 The DeformitySim authors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE), except for
+the third-party components and data listed below, which remain under their own licences.
+The single-file application (spine_simulator.html) embeds some of them; their notices are
+reproduced here and inside the embedded source where the licence requires it.
+
+Research and education use only. Not a medical device. See README.md.
+
+------------------------------------------------------------------------------------------
+Runtimes
+------------------------------------------------------------------------------------------
+
+three.js r160 and OrbitControls
+  Copyright 2010-2023 Three.js Authors. MIT License.
+  https://github.com/mrdoob/three.js
+  Embedded as src/vendor/three-r160-orbitcontrols.js (licence header retained).
+
+TensorFlow.js 4.22.0 (ES2017 bundle) — full builds only
+  Copyright Google LLC. Apache License 2.0.
+  https://github.com/tensorflow/tfjs
+  ai-tools/assets/tf.min.js (licence header retained). Not embedded in --no-model builds.
+
+------------------------------------------------------------------------------------------
+Anatomical data
+------------------------------------------------------------------------------------------
+
+Reference CT atlas (31 bones, src/data/reference_atlas.js)
+  Derived (surface extraction, smoothing, decimation, quantization) from the TotalSegmentator
+  v2 dataset (small subset v2.0.1, subject s1369), licensed CC BY 4.0.
+  Wasserthal J, et al. TotalSegmentator: Robust Segmentation of 104 Anatomic Structures in
+  CT Images. Radiol Artif Intell. 2023. https://doi.org/10.1148/ryai.230024
+  Dataset: https://zenodo.org/records/10047263 — https://creativecommons.org/licenses/by/4.0/
+  The derived atlas is distributed under CC BY 4.0.
+
+Lower-limb atlas (32 structures, src/data/lower_limb_atlas.js)
+  Derived from BodyParts3D version 4.0 (PART-OF tree), © The Database Center for Life
+  Science (DBCLS). Mitsuhashi N, et al. BodyParts3D: 3D structure database for anatomical
+  concepts. Nucleic Acids Res. 2009;37:D782-5.
+  https://dbarchive.biosciencedbc.jp/en/bodyparts3d/
+  Licence note: the current archive page states CC BY 4.0, while the OBJ file headers carry
+  the legacy CC BY-SA 2.1 Japan licence. To respect both, the derived lower-limb atlas is
+  distributed under CC BY-SA 2.1 Japan (https://creativecommons.org/licenses/by-sa/2.1/jp/)
+  with the attribution above; this share-alike term applies to that data file, not to the
+  application code.
+
+------------------------------------------------------------------------------------------
+Neural landmark model — NOT included in this repository
+------------------------------------------------------------------------------------------
+
+The optional neural AP engine uses the network architecture of:
+  Yi J, Wu P, Huang Q, Qu H, Metaxas DN. Vertebra-Focused Landmark Detection for Scoliosis
+  Assessment. ISBI 2020. Code: https://github.com/yijingru/Vertebra-Landmark-Detection (MIT).
+The authors' trained weights were published without a licence statement and were trained on
+the AASCE 2019 / SpineWeb dataset 16, whose terms could not be verified. The weights
+(ai-tools/assets/weights.b64) are therefore NOT distributed here, and public builds are made
+without them. ai-tools/assets/model_topology.json describes the converted graph (no weights);
+ai-tools/assets/spec.json holds reference outputs on a synthetic test pattern used by the
+self-test.
+
+------------------------------------------------------------------------------------------
+Literature-derived parameters
+------------------------------------------------------------------------------------------
+
+Procedure correction defaults and bounds, classification thresholds (SRS-Schwab), age-adjusted
+reference values (Lafage R, et al. Spine 2016) and gait cohort couplings (North American Spine
+Society Journal cohort data) are cited at their point of use in src/js/app/01-data.js and shown
+in the application. They are facts and published values, used with citation.

@@ -1,0 +1,28 @@
+  </style>
+</head>
+
+<body>
+  <a class="skip-link" href="#viewport">Skip to 3D viewport</a>
+  <a class="skip-link" href="#patientParameters">Skip to patient inputs</a>
+
+  <dialog id="launchGate" aria-labelledby="launchGateTitle">
+    <form class="launch-gate-card" id="launchGateForm" novalidate>
+      <div class="launch-gate-brand">
+        <div class="launch-gate-mark" aria-hidden="true"><i class="fa-solid fa-bone"></i></div>
+        <div>
+          <p class="launch-gate-eyebrow">Internal test build</p>
+          <h1 id="launchGateTitle">DeformitySim</h1>
+        </div>
+      </div>
+      <p class="launch-gate-lede">Enter the launch code to open the workspace.</p>
+      <label for="launchCodeInput">Launch code</label>
+      <input id="launchCodeInput" name="launchCode" type="password" inputmode="text"
+             autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"
+             aria-describedby="launchGateNote">
+      <p class="launch-gate-error" id="launchGateError" role="alert" hidden></p>
+      <button type="submit" id="launchGateSubmit">Unlock workspace</button>
+      <p class="launch-gate-note" id="launchGateNote">Confidential research build shared for internal evaluation. Educational model only — not surgical planning, not a prediction of achieved correction, and not patient-specific. Do not enter identifiable patient information; imaging you load stays on this device and is never transmitted.</p>
+    </form>
+  </dialog>
+
+  <script>

@@ -1,0 +1,293 @@
+{
+ "model": "yijingru/Vertebra-Landmark-Detection (ISBI 2020) SpineNet: ResNet34 backbone + DecNet, heads hm/reg/wh",
+ "checkpoint": {
+  "file": "weights/model_last.pth",
+  "sha256": "6a779e01b9a41601334e0a9541278fc557a95bd650c6c8de311204821509d19b",
+  "epoch": 25
+ },
+ "input": {
+  "name": "input",
+  "shape": [
+   1,
+   1024,
+   512,
+   3
+  ],
+  "layout": "NHWC",
+  "dtype": "float32"
+ },
+ "preprocess": {
+  "resizeTo": [
+   1024,
+   512
+  ],
+  "resizeToNote": "[h, w]; cv2.resize(image, (512, 1024)) default INTER_LINEAR",
+  "aspect": "stretch",
+  "colorOrder": "BGR",
+  "formula": "x = pixel / 255 - 0.5   (per channel, no per-image normalization)",
+  "scale": 0.00392156862745098,
+  "mean": [
+   0.5,
+   0.5,
+   0.5
+  ],
+  "std": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "meanStdNote": "mean is subtracted AFTER scaling by 1/255; equivalently (pixel - 127.5) / 255",
+  "valueRange": [
+   -0.5,
+   0.5
+  ]
+ },
+ "outputs": [
+  {
+   "name": "hm",
+   "tfjsNodeName": "Identity",
+   "signatureTensor": "Identity:0",
+   "shape": [
+    1,
+    256,
+    128,
+    1
+   ],
+   "layout": "NHWC",
+   "activation": "sigmoid (already applied in graph)"
+  },
+  {
+   "name": "reg",
+   "tfjsNodeName": "Identity_1",
+   "signatureTensor": "Identity_1:0",
+   "shape": [
+    1,
+    256,
+    128,
+    2
+   ],
+   "layout": "NHWC",
+   "channels": [
+    "dx",
+    "dy"
+   ],
+   "unit": "heatmap cells"
+  },
+  {
+   "name": "wh",
+   "tfjsNodeName": "Identity_2",
+   "signatureTensor": "Identity_2:0",
+   "shape": [
+    1,
+    256,
+    128,
+    8
+   ],
+   "layout": "NHWC",
+   "channels": [
+    "tl_x",
+    "tl_y",
+    "tr_x",
+    "tr_y",
+    "bl_x",
+    "bl_y",
+    "br_x",
+    "br_y"
+   ],
+   "unit": "heatmap cells",
+   "semantics": "center - corner"
+  }
+ ],
+ "outputOrderNote": "model.execute(x) returns [hm, reg, wh] in model.outputs order (Identity, Identity_1, Identity_2). Safest: model.execute(x, ['Identity','Identity_1','Identity_2']) or identify by last-dim channel count 1/2/8.",
+ "downRatio": 4,
+ "heatmapSize": [
+  256,
+  128
+ ],
+ "decode": {
+  "nmsKernel": 3,
+  "nmsNote": "3x3 max-pool, stride 1, pad 1; keep cells equal to local max, others -> 0",
+  "topK": 17,
+  "topKNote": "DecDecoder hard-codes self.K = 17 regardless of --K (default 100)",
+  "confThresh": 0.2,
+  "confThreshNote": "main.py default --conf_thresh 0.2 but ctdet_decode never applies it; test.py draws all 17. Apply it yourself for display.",
+  "center": "cx = (ix + reg[0]) * downRatio ; cy = (iy + reg[1]) * downRatio   (input-pixel coords, 512x1024)",
+  "cornerOrder": [
+   "tl",
+   "tr",
+   "bl",
+   "br"
+  ],
+  "corner": "corner_i = ((ix + reg[0]) - wh[2i], (iy + reg[1]) - wh[2i+1]) * downRatio",
+  "toOriginal": "x_orig = x_input * origW / 512 ; y_orig = y_input * origH / 1024",
+  "sortForDisplay": "test.py sorts the 17 detections by center y ascending before drawing",
+  "referenceJs": "decode_reference.js (decodeSpineLandmarks, spineLandmarksToOriginal, spinePreprocessRGBA)"
+ },
+ "recommendedVariant": "tfjs_f16",
+ "quantization": "float16",
+ "modelJsonPath": "tfjs_f16/model.json",
+ "weightShardPaths": [
+  "tfjs_f16/group1-shard1of12.bin",
+  "tfjs_f16/group1-shard2of12.bin",
+  "tfjs_f16/group1-shard3of12.bin",
+  "tfjs_f16/group1-shard4of12.bin",
+  "tfjs_f16/group1-shard5of12.bin",
+  "tfjs_f16/group1-shard6of12.bin",
+  "tfjs_f16/group1-shard7of12.bin",
+  "tfjs_f16/group1-shard8of12.bin",
+  "tfjs_f16/group1-shard9of12.bin",
+  "tfjs_f16/group1-shard10of12.bin",
+  "tfjs_f16/group1-shard11of12.bin",
+  "tfjs_f16/group1-shard12of12.bin"
+ ],
+ "totalWeightBytes": 48394204,
+ "variants": {
+  "tfjs_f16": {
+   "dir": "tfjs_f16",
+   "modelJsonPath": "tfjs_f16/model.json",
+   "weightShardPaths": [
+    "tfjs_f16/group1-shard1of12.bin",
+    "tfjs_f16/group1-shard2of12.bin",
+    "tfjs_f16/group1-shard3of12.bin",
+    "tfjs_f16/group1-shard4of12.bin",
+    "tfjs_f16/group1-shard5of12.bin",
+    "tfjs_f16/group1-shard6of12.bin",
+    "tfjs_f16/group1-shard7of12.bin",
+    "tfjs_f16/group1-shard8of12.bin",
+    "tfjs_f16/group1-shard9of12.bin",
+    "tfjs_f16/group1-shard10of12.bin",
+    "tfjs_f16/group1-shard11of12.bin",
+    "tfjs_f16/group1-shard12of12.bin"
+   ],
+   "totalWeightBytes": 48394204,
+   "modelJsonBytes": 86375,
+   "quantization": "float16"
+  },
+  "tfjs_mixed": {
+   "dir": "tfjs_mixed",
+   "modelJsonPath": "tfjs_mixed/model.json",
+   "weightShardPaths": [
+    "tfjs_mixed/group1-shard1of7.bin",
+    "tfjs_mixed/group1-shard2of7.bin",
+    "tfjs_mixed/group1-shard3of7.bin",
+    "tfjs_mixed/group1-shard4of7.bin",
+    "tfjs_mixed/group1-shard5of7.bin",
+    "tfjs_mixed/group1-shard6of7.bin",
+    "tfjs_mixed/group1-shard7of7.bin"
+   ],
+   "totalWeightBytes": 26947548,
+   "modelJsonBytes": 87337,
+   "quantization": "mixed: uint8 for the 19 largest conv kernels (>=589824 params, 21.45M params), float16 for the rest"
+  },
+  "tfjs_uint8": {
+   "dir": "tfjs_uint8",
+   "modelJsonPath": "tfjs_uint8/model.json",
+   "weightShardPaths": [
+    "tfjs_uint8/group1-shard1of6.bin",
+    "tfjs_uint8/group1-shard2of6.bin",
+    "tfjs_uint8/group1-shard3of6.bin",
+    "tfjs_uint8/group1-shard4of6.bin",
+    "tfjs_uint8/group1-shard5of6.bin",
+    "tfjs_uint8/group1-shard6of6.bin"
+   ],
+   "totalWeightBytes": 24197200,
+   "modelJsonBytes": 91772,
+   "quantization": "uint8"
+  },
+  "tfjs_f32": {
+   "dir": "tfjs_f32",
+   "modelJsonPath": "tfjs_f32/model.json",
+   "weightShardPaths": [
+    "tfjs_f32/group1-shard1of24.bin",
+    "tfjs_f32/group1-shard2of24.bin",
+    "tfjs_f32/group1-shard3of24.bin",
+    "tfjs_f32/group1-shard4of24.bin",
+    "tfjs_f32/group1-shard5of24.bin",
+    "tfjs_f32/group1-shard6of24.bin",
+    "tfjs_f32/group1-shard7of24.bin",
+    "tfjs_f32/group1-shard8of24.bin",
+    "tfjs_f32/group1-shard9of24.bin",
+    "tfjs_f32/group1-shard10of24.bin",
+    "tfjs_f32/group1-shard11of24.bin",
+    "tfjs_f32/group1-shard12of24.bin",
+    "tfjs_f32/group1-shard13of24.bin",
+    "tfjs_f32/group1-shard14of24.bin",
+    "tfjs_f32/group1-shard15of24.bin",
+    "tfjs_f32/group1-shard16of24.bin",
+    "tfjs_f32/group1-shard17of24.bin",
+    "tfjs_f32/group1-shard18of24.bin",
+    "tfjs_f32/group1-shard19of24.bin",
+    "tfjs_f32/group1-shard20of24.bin",
+    "tfjs_f32/group1-shard21of24.bin",
+    "tfjs_f32/group1-shard22of24.bin",
+    "tfjs_f32/group1-shard23of24.bin",
+    "tfjs_f32/group1-shard24of24.bin"
+   ],
+   "totalWeightBytes": 96788212,
+   "modelJsonBytes": 80188,
+   "quantization": "none (float32)"
+  }
+ },
+ "base64Files": {
+  "weights_f16.b64": {
+   "source": "tfjs_f16",
+   "topology": "model_topology_f16.json (== model_topology.json)"
+  },
+  "weights_mixed.b64": {
+   "source": "tfjs_mixed",
+   "topology": "model_topology_mixed.json"
+  },
+  "weights_uint8.b64": {
+   "source": "tfjs_uint8",
+   "topology": "model_topology_uint8.json",
+   "warning": "numerically unusable, see REPORT.md"
+  }
+ },
+ "graphOps": [
+  "Const",
+  "Placeholder",
+  "Pad",
+  "PadV2",
+  "_FusedConv2D",
+  "MaxPool",
+  "AddV2",
+  "Relu",
+  "ResizeBilinear",
+  "ConcatV2",
+  "Sigmoid",
+  "Identity"
+ ],
+ "tfjsVersionTested": "4.22.0 (CPU backend in Node)",
+ "validation": {
+  "onnx_vs_pytorch_max_abs": {
+   "hm": 1.7e-06,
+   "reg": 7.6e-06,
+   "wh": 0.00012
+  },
+  "saved_model_vs_pytorch_max_abs": {
+   "hm": 2.3e-06,
+   "reg": 2.3e-05,
+   "wh": 0.00029
+  },
+  "tfjs_f16_vs_pytorch_max_abs": {
+   "hm": 0.0031,
+   "reg": 0.0075,
+   "wh": 0.067,
+   "decoded_landmarks_px_input_space": 0.11,
+   "top17_peak_set_and_order_identical": true
+  },
+  "tfjs_mixed_vs_pytorch": {
+   "hm": 0.033,
+   "reg": 0.063,
+   "wh": 0.62,
+   "decoded_conf_ge_0.2_matched_center_px": 8.25,
+   "note": "peak ranking changes among near-tied low-confidence cells"
+  },
+  "tfjs_uint8_vs_pytorch": {
+   "hm": 0.14,
+   "reg": 0.25,
+   "wh": 6.5,
+   "note": "hm argmax differs; unusable"
+  }
+ }
+}

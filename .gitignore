@@ -1,0 +1,9 @@
+# Neural model weights are not redistributable (see NOTICE)
+ai-tools/assets/weights.b64
+# Local full builds (may contain weights); the public build lives in dist/
+/spine_simulator.html
+deploy/private/spine_simulator.html
+deploy/private/config.php
+# Internal sample radiographs (unrecorded provenance) must never be committed
+samples/
+node_modules/
