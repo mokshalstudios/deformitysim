@@ -1,0 +1,11 @@
+# Sources are assembled byte-for-byte by tools/build.js: keep LF everywhere.
+* text=auto eol=lf
+*.dcm binary
+*.bin binary
+*.rgb binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.tif binary
+*.docx binary
+*.pdf binary
