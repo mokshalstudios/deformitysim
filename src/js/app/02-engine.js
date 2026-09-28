@@ -314,8 +314,8 @@
         const coronalPartial = computeThreePlaneScenario(coronalBaseline, coronalPlan, { applyCoronalCompensation: true });
         const coronalRigid = computeThreePlaneScenario({ ...coronalBaseline, secondaryFlexibility: 0 }, coronalPlan, { applyCoronalCompensation: true });
         const coronalFlexible = computeThreePlaneScenario({ ...coronalBaseline, secondaryFlexibility: 1 }, coronalPlan, { applyCoronalCompensation: true });
-        check(MODEL_MANIFEST.modelVersion === '0.23.0'
-          && MODEL_MANIFEST.buildId === 'alpha-2026-09-27.1',
+        check(MODEL_MANIFEST.modelVersion === '0.23.1'
+          && MODEL_MANIFEST.buildId === 'alpha-2026-09-28.1',
         'versioned build identity');
         const pelvicReference = derivePelvicKinematicTargets(52, 22);
         const pelvicPiOnly = derivePelvicKinematicTargets(61, 22);

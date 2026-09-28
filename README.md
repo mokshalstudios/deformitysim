@@ -10,8 +10,8 @@
 > select treatment, establish eligibility, or predict an achieved correction. Do not enter
 > identifiable patient information.
 
-Version **0.23.0-alpha** · Licence **Apache-2.0** (code) · third-party data under their own
-licences (see [NOTICE](NOTICE))
+**[Open the live demo](https://mokshalstudios.github.io/deformitysim/)** · Version **0.23.1-alpha** ·
+Licence **Apache-2.0** (code) · third-party data under their own licences (see [NOTICE](NOTICE))
 
 ![Three-plane workspace: case inputs, posed CT-derived skeleton and procedure panel](media/workspace-scoliosis-ap.png)
 
@@ -55,9 +55,12 @@ local file created only after an explicit warning about burned-in identifiers.
 
 ## Quick start
 
-1. Download `dist/deformitysim.html` (or clone the repository).
-2. Open it in a current Chrome, Edge, Firefox or Safari — directly from disk is fine.
+1. Open the live demo at **https://mokshalstudios.github.io/deformitysim/** — or, to run fully
+   offline, download [`dist/deformitysim.html`](dist/deformitysim.html) and open it directly from disk.
+2. Use a current Chrome, Edge, Firefox or Safari.
 3. Choose **Start guided demo** or **Explore on my own**.
+
+Either way nothing is uploaded: the page makes no network requests once loaded.
 
 WebGL is required for the 3D view.
 
@@ -94,6 +97,7 @@ node audit-tools/interaction_harness.js dist/deformitysim.html
 node audit-tools/scene_harness.js dist/deformitysim.html
 node ai-tools/dicom-tests/test.js
 node audit-tools/release_tests.js dist/deformitysim.html
+node audit-tools/pelvis_tests.js dist/deformitysim.html
 ```
 
 The `audit-tools/*_tests.js` suites drive a real Chrome/Edge through the DevTools protocol

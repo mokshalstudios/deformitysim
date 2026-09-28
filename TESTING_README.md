@@ -1,4 +1,4 @@
-# DeformitySim — open-source alpha v0.23.0
+# DeformitySim — open-source alpha v0.23.1
 
 Research and education use only; not a medical device.
 

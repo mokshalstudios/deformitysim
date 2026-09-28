@@ -3235,12 +3235,17 @@
       const coronalBalanceStatus = balanceActive
         ? ` Coronal display: an unmeasured balancing bend of ${Math.abs(coronalBalance.caudalDeg).toFixed(0)}° below and ${Math.abs(coronalBalance.cranialDeg).toFixed(0)}° above the authored coronal geometry keeps the head over the pelvis (no C7–CSVL decompensation input exists); it is not a reported Cobb.`
         : '';
+      // Away from the atlas PI the hip bones are reshaped by the PI display
+      // field (applyPelvicIncidenceField); say so rather than let it pass as anatomy.
+      const pelvicReshapeStatus = pelvisGroup?.userData?.pelvicIncidenceSchematicReshaping === true
+        ? ' At this PI the pelvis shape is adjusted schematically so the sacroiliac joints and hip sockets stay in contact; this is an educational approximation, not patient anatomy.'
+        : '';
       const ctLevels = [...segmentRecords.values()].filter(record => record.geometryMode === 'ct_reference').length;
       const referenceContext = `${pelvisReferenceLayer?.children.length ? ', a CT-derived pelvis' : ''}${lowerExtremityContext?.userData?.geometryMode === 'bodyparts3d_bilateral_reference' ? ', and bilateral open-atlas lower limbs' : ''}`;
       const geometryStatus = ctLevels
         ? ` ${ctLevels} intact level${ctLevels === 1 ? '' : 's'} use CT-derived external reference surfaces${referenceContext}; edited or operated levels may use an explicit semantic fallback.`
         : ' The semantic procedural fallback is active because the embedded CT surfaces are unavailable or incompatible with the current edit.';
-      els.canvasDescription.textContent = `${state.view === 'post' ? 'Modeled post-operative' : 'Pre-operative'} three-dimensional reference spine. Pelvic incidence ${degree(state.params.pi)}, pelvic tilt ${degree(current.pt)}, derived sacral slope ${degree(state.params.pi - current.pt)}, lumbar lordosis ${degree(current.ll)}, thoracic kyphosis ${degree(current.tk)}, and signed C2–C7 angle ${signedDegree(current.cl)}. PI changes the authored sacral-base morphology while PT changes hip-centered posture.${geometryStatus}${authoredStatus}${coronalBalanceStatus}${measurement}${assumption}${availability} ${procedures}. Use drag to rotate, scroll or pinch to zoom, arrow keys to orbit, plus or minus to zoom, and R to reset.`;
+      els.canvasDescription.textContent = `${state.view === 'post' ? 'Modeled post-operative' : 'Pre-operative'} three-dimensional reference spine. Pelvic incidence ${degree(state.params.pi)}, pelvic tilt ${degree(current.pt)}, derived sacral slope ${degree(state.params.pi - current.pt)}, lumbar lordosis ${degree(current.ll)}, thoracic kyphosis ${degree(current.tk)}, and signed C2–C7 angle ${signedDegree(current.cl)}. PI changes the authored sacral-base morphology while PT changes hip-centered posture.${pelvicReshapeStatus}${geometryStatus}${authoredStatus}${coronalBalanceStatus}${measurement}${assumption}${availability} ${procedures}. Use drag to rotate, scroll or pinch to zoom, arrow keys to orbit, plus or minus to zoom, and R to reset.`;
     }
 
     function renderItinerary() {

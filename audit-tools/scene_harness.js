@@ -3737,45 +3737,102 @@ test.applyCaseExample('neutral-reference');
 harness.setLayers({ ...defaultLayers, siJoints: true, ligaments: true, implants: true });
 const piAuditPlan = harness.buildPlan('s2aiFixation', 'PELVIS-SI');
 harness.setScenario([{ levelId: 'PELVIS-SI', procedureId: 's2aiFixation', implantPlan: piAuditPlan }]);
+/* v0.23.1: this assertion used to require that a nonzero PI morphology HIDE
+   the SI, pelvic-ligament and pelvic-hardware overlays (or keep them rigidly
+   bound to the rotated sacrum), which is what made the pelvis vanish. The
+   overlays now stay visible and follow the PI display field: every overlay
+   vertex sits exactly where the published field maps its rest position, each
+   pelvic implant stays rigid with its entry point on the field, and PI 52
+   restores the rest buffers and transforms exactly. */
 const piMorphRoot = test.getSacralMorphologyRoot();
-const piOverlayRoots = [
-  ['SI-joint', test.getSIJoints()],
-  ['pelvic-ligament', test.getPelvicLigaments()],
-  ['pelvic-hardware', test.getPelvicHardware()]
-];
+const piReferenceLayer = test.getPelvisReferenceLayer();
+const piToMm = () => piReferenceLayer.matrixWorld.clone().invert();
 test.getScene().updateMatrixWorld(true);
 const piMorphMatrixBefore = worldMatrixSnapshot(piMorphRoot);
-const piOverlaySnapshots = piOverlayRoots.map(([role, root]) => ({
-  role,
-  root,
-  objects: visibleGeometryWithin(root).map(object => ({
-    object,
-    relative: new context.THREE.Matrix4()
-      .multiplyMatrices(piMorphRoot.matrixWorld.clone().invert(), object.matrixWorld)
-      .toArray()
-  }))
+const piVertexOverlays = [
+  ['SI-joint', test.getSIJoints()],
+  ['pelvic-ligament', test.getPelvicLigaments()]
+].map(([role, root]) => {
+  const toMm = piToMm();
+  return {
+    role, root,
+    meshes: visibleGeometryWithin(root).filter(object => object.isMesh).map(object => {
+      const position = object.geometry.getAttribute('position');
+      const matrix = object.matrixWorld.clone();
+      const restMm = [];
+      for (let index = 0; index < position.count; index += 1) {
+        restMm.push(new context.THREE.Vector3().fromBufferAttribute(position, index).applyMatrix4(matrix).applyMatrix4(toMm).toArray());
+      }
+      return { object, restLocal: Array.from(position.array), restMm };
+    })
+  };
+});
+const piImplants = [];
+test.getPelvicHardware().children.forEach(root => root.children.forEach(implant => {
+  if (!implant.isGroup || !Array.isArray(implant.userData?.pelvicAnchorScene)) return;
+  piImplants.push({
+    implant, root,
+    restPosition: implant.position.toArray(), restQuaternion: implant.quaternion.toArray(),
+    anchorRestMm: new context.THREE.Vector3().fromArray(implant.userData.pelvicAnchorScene)
+      .applyMatrix4(root.matrixWorld).applyMatrix4(piToMm()).toArray()
+  });
 }));
 harness.setAlignmentParams({ pi: 61 });
 test.getScene().updateMatrixWorld(true);
 const piMorphMatrixAfter = worldMatrixSnapshot(piMorphRoot);
-const piOverlaySafety = piOverlaySnapshots.map(snapshot => ({
-  role: snapshot.role,
-  hidden: snapshot.root.visible === false,
-  bound: snapshot.objects.length > 0 && snapshot.objects.every(entry => {
-    entry.object.updateWorldMatrix(true, true);
-    const relative = new context.THREE.Matrix4()
-      .multiplyMatrices(piMorphRoot.matrixWorld.clone().invert(), entry.object.matrixWorld)
-      .toArray();
-    return numericArraysNear(relative, entry.relative, 1e-7);
-  })
-}));
+const piTheta = piMorphRoot.rotation.z;
+const piFieldResult = piVertexOverlays.map(overlay => {
+  const toMm = piToMm();
+  let maximumErrorMm = 0;
+  let vertices = 0;
+  let bandVertices = 0;
+  overlay.meshes.forEach(({ object, restMm }) => {
+    const position = object.geometry.getAttribute('position');
+    restMm.forEach((rest, index) => {
+      const now = new context.THREE.Vector3().fromBufferAttribute(position, index).applyMatrix4(object.matrixWorld).applyMatrix4(toMm);
+      const expected = test.pelvicIncidenceFieldPoint(rest, piTheta);
+      if (expected.weight === 1) bandVertices += 1;
+      maximumErrorMm = Math.max(maximumErrorMm, now.distanceTo(new context.THREE.Vector3().fromArray(expected.point)));
+      vertices += 1;
+    });
+  });
+  return {
+    role: overlay.role, visible: overlay.root.visible === true && overlay.meshes.length > 0
+      && overlay.meshes.every(({ object }) => visibleWithinRoot(object, overlay.root)),
+    vertices, bandVertices, maximumErrorMm, finite: finiteObjectTree(overlay.root)
+  };
+});
+const piImplantResult = piImplants.map(({ implant, root, anchorRestMm }) => {
+  const relative = new context.THREE.Matrix4().multiplyMatrices(root.matrixWorld.clone().invert(), implant.matrixWorld);
+  const scale = new context.THREE.Vector3().setFromMatrixScale(relative);
+  const anchorNow = new context.THREE.Vector3().fromArray(implant.userData.pelvicAnchorScene)
+    .applyMatrix4(implant.matrixWorld).applyMatrix4(piToMm());
+  const expected = test.pelvicIncidenceFieldPoint(anchorRestMm, piTheta);
+  return {
+    name: implant.name,
+    rigid: Math.abs(scale.x - 1) < 1e-6 && Math.abs(scale.y - 1) < 1e-6 && Math.abs(scale.z - 1) < 1e-6,
+    moved: !numericArraysNear(implant.position.toArray(), [0, 0, 0], 1e-9) || !numericArraysNear(implant.quaternion.toArray(), [0, 0, 0, 1], 1e-9),
+    anchorErrorMm: anchorNow.distanceTo(new context.THREE.Vector3().fromArray(expected.point))
+  };
+});
+const piHardwareVisible = test.getPelvicHardware().visible === true;
+harness.setAlignmentParams({ pi: 52 });
+test.getScene().updateMatrixWorld(true);
+const piRestored = piVertexOverlays.every(overlay => overlay.meshes.every(({ object, restLocal }) =>
+  numericArraysNear(Array.from(object.geometry.getAttribute('position').array), restLocal, 0)))
+  && piImplants.every(({ implant, restPosition, restQuaternion }) =>
+    numericArraysNear(implant.position.toArray(), restPosition, 0) && numericArraysNear(implant.quaternion.toArray(), restQuaternion, 0));
 check(!numericArraysNear(piMorphMatrixBefore, piMorphMatrixAfter, 1e-7)
-    && piOverlaySafety.every(result => result.hidden || result.bound),
-  'nonzero pelvic-incidence morphology hides or continuously binds SI, pelvic-ligament, and pelvic-hardware overlays',
+    && piFieldResult.every(result => result.visible && result.finite && result.vertices > 0 && result.maximumErrorMm < 1e-3)
+    && piFieldResult.some(result => result.bandVertices > 0)
+    && piHardwareVisible && piImplants.length >= 2
+    && piImplantResult.every(result => result.rigid && result.moved && result.anchorErrorMm < 1e-3)
+    && piRestored,
+  'nonzero pelvic-incidence morphology keeps SI, pelvic-ligament, and pelvic-hardware overlays visible on the PI display field and PI 52 restores them exactly',
   JSON.stringify({
     morphologyRootChanged: !numericArraysNear(piMorphMatrixBefore, piMorphMatrixAfter, 1e-7),
-    rotationDeg: context.THREE.MathUtils.radToDeg(piMorphRoot.rotation.z),
-    overlays: piOverlaySafety
+    rotationDeg: context.THREE.MathUtils.radToDeg(piTheta),
+    overlays: piFieldResult, hardwareVisible: piHardwareVisible, implants: piImplantResult, restored: piRestored
   }));
 harness.setLayers(defaultLayers);
 

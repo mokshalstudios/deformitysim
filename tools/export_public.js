@@ -32,7 +32,7 @@ const ALLOW = [
   'ai-tools/assets/spec.json', 'ai-tools/assets/model_topology.json', 'ai-tools/assets/tf.min.js',
   /^ai-tools\/export\/(REPORT\.md|export_onnx\.py|run_reference\.py|validate_tfjs\.js|export_spec\.json)$/,
   /^ai-tools\/dicom-tests\/(test\.js|make_fixtures\.py|preview\.js)$/, /^ai-tools\/dicom-tests\/fixtures\/[^/]+\.(dcm|json|bin|rgb)$/,
-  /^audit-tools\/[^/]+\.js$/,
+  /^audit-tools\/[^/]+\.js$/, /^audit-tools\/fixtures\/[^/]+\.json$/,
   'deploy/DEPLOY.md', /^deploy\/htdocs\//, /^deploy\/tests\//, /^deploy\/tools\//,
   'deploy/private/.htaccess', 'deploy/private/config.sample.php',
 ];
@@ -98,6 +98,17 @@ const sha = crypto.createHash('sha256').update(html).digest('hex');
 fs.writeFileSync(path.join(target, 'dist', 'SHA256SUMS.txt'), `${sha}  deformitysim.html\n`);
 if (/spineAiWeights/.test(html.toString('utf8'))) throw new Error('public build unexpectedly contains model weights');
 
+// The page links manifest.webmanifest and icon-180.png relative to itself when served over
+// http(s). The PHP deploy has its own copies; give the GitHub Pages copy in dist/ a manifest
+// whose start_url is the single file, plus the app icons.
+for (const icon of ['icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-512-maskable.png']) {
+  fs.copyFileSync(path.join(root, 'deploy', 'htdocs', icon), path.join(target, 'dist', icon));
+}
+const deployManifest = JSON.parse(fs.readFileSync(path.join(root, 'deploy', 'htdocs', 'manifest.webmanifest'), 'utf8'));
+fs.writeFileSync(path.join(target, 'dist', 'manifest.webmanifest'), JSON.stringify({
+  ...deployManifest, start_url: './deformitysim.html', scope: './', id: 'deformitysim'
+}, null, 2) + '\n');
+
 // GitHub Pages entry point.
 fs.writeFileSync(path.join(target, 'index.html'), `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta http-equiv="refresh" content="0; url=dist/deformitysim.html">
@@ -105,6 +116,18 @@ fs.writeFileSync(path.join(target, 'index.html'), `<!DOCTYPE html>
 <body><p><a href="dist/deformitysim.html">Open DeformitySim</a> (research and education use only).</p></body></html>
 `);
 
+fs.writeFileSync(path.join(target, '.gitattributes'), `# Sources are assembled byte-for-byte by tools/build.js: keep LF everywhere.
+* text=auto eol=lf
+*.dcm binary
+*.bin binary
+*.rgb binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.tif binary
+*.docx binary
+*.pdf binary
+`);
 fs.writeFileSync(path.join(target, '.gitignore'), `# Neural model weights are not redistributable (see NOTICE)
 ai-tools/assets/weights.b64
 # Local full builds (may contain weights); the public build lives in dist/

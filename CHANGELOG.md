@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.23.1-alpha — 2026-09-28
+
+### Fixed
+- **The hip bones no longer disappear when pelvic incidence is changed.** At any PI other
+  than the atlas value, the iliac bones (and, when switched on, the SI-joint surfaces, the
+  pelvic ligaments and pelvic fixation hardware) used to be hidden. They now stay visible
+  across the whole PI range: the pelvis shape is adjusted schematically to the entered PI.
+  The part of each hip bone that meets the sacrum moves with it, so the sacroiliac joints
+  stay in contact; the hip sockets stay on the femoral heads; the bone in between blends
+  smoothly. Pelvic implants stay rigid, anchored at their entry point. This is an
+  educational approximation, not patient anatomy, and the scene, the geometry chip, the gait
+  readout and Help say so.
+- Every measured and reported value is unchanged: PI, PT, sacral slope and all modeled
+  outputs still come from the same sacrum, spine and femoral-head axis as before.
+
 ## 0.23.0-alpha — 2026-09-27 — first open-source alpha
 
 The project is renamed **DeformitySim** (previously Spine Scenario Studio). Case files saved under

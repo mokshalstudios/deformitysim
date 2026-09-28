@@ -32,6 +32,10 @@
     const sacralMorphologyPivotAppMm = new THREE.Vector3();
     const sacralMorphologyPivotScene = new THREE.Vector3();
     const sacralReferenceRestPosition = new THREE.Vector3();
+    // PI display field for the hip bones and pelvic overlays; built lazily from
+    // the rest geometry the first time PI leaves the atlas value (see
+    // buildPelvicIncidenceField).
+    let pelvicIncidenceField = null;
     let firstTargetApplication = true;
     let highlightedLevel = null;
     let inspectionApplying = false;
@@ -2190,7 +2194,440 @@
         .applyAxisAngle(LOCAL_Z_AXIS, angleRadians)
         .add(pivot);
       sacralReferenceSurface.userData.pelvicIncidenceMorphologyRotationDeg = THREE.MathUtils.radToDeg(angleRadians);
+      applyPelvicIncidenceField(angleRadians);
       return true;
+    }
+
+    /* ---------------------------------------------------------------------
+       Pelvic-incidence display field for the hip bones (v0.23.1).
+
+       PI is posed by rotating the sacrum and spine about the L5-S1 proxy while
+       the femoral-head axis and the world-rooted legs stay put, so the rigid CT
+       innominates no longer met the rotated sacrum and earlier builds hid them
+       (with the SI overlays, pelvic ligaments and pelvic hardware) at any PI
+       other than the atlas value. Each innominate is now reshaped instead:
+       every vertex rotates about the SAME pivot and axis as the sacrum, in the
+       same app-mm frame, by w * theta, where theta is the sacrum's PI rotation
+       and
+         w = 1 inside the sacroiliac band (within sacroiliacBandMm of the rest
+               sacrum), so the SI joint moves with the sacrum and stays congruent;
+         w = 0 inside the acetabular zone (within acetabularZoneMm of the
+               femoral-head proxy the hip axis is built on), so the socket stays
+               concentric with the femoral head;
+         w = smoothstep(dA / (dA + dS)) in between, dA and dS being the
+               distances past those two zones, which spreads the blend over
+               the whole ilium between them.
+       Blending the angle rather than the position keeps the bone from
+       collapsing. Weights are computed once from the undeformed rest geometry;
+       at the atlas PI (theta = 0) the rest buffers are restored bit for bit.
+       The SI-joint and pelvic-ligament overlays take the same field per vertex;
+       pelvic implants stay rigid, anchored at their entry point and re-aimed
+       at their deformed target. No reported landmark reads these vertices: the
+       hip axis is the femoral-head proxy (atlas bounds) and S1 the S1 bounds,
+       so every measured value is unchanged. This is a schematic educational
+       reshaping, not patient anatomy.
+    --------------------------------------------------------------------- */
+    const PELVIC_INCIDENCE_FIELD = Object.freeze({
+      id: 'pi-innominate-angle-blend-v1',
+      // Moves rigidly with the sacrum. The normal adult SI joint space is 2 mm
+      // or more on CT (Vogler JB et al., Radiology 1984;151:433-437, PMID
+      // 6709915); 8 mm spans that space, both articular cortices and the
+      // adjacent interosseous surface of this decimated mesh.
+      sacroiliacBandMm: 8,
+      // Stays fixed. The adult femoral-head radius is about 22-25 mm (Jamali AA
+      // et al., Clin Orthop Relat Res 2013;471:3581-3587, PMID 23922189); 30 mm
+      // adds a margin for the acetabular rim.
+      acetabularZoneMm: 30,
+      // Damped animation steps smaller than this are skipped until the target
+      // is reached exactly (1e-6 rad moves a vertex 150 mm from the pivot by
+      // 0.15 micrometre).
+      updateEpsilonRad: 1e-6,
+      // Bucket size of the nearest-sacrum-vertex search.
+      clusterCellMm: 24
+    });
+
+    // Local-to-pelvis matrix of an object below pelvisGroup. It excludes the
+    // live pelvic posture, so it is the same at every PT.
+    function pelvisRelativeMatrix(object) {
+      const chain = [];
+      for (let cursor = object; cursor && cursor !== pelvisGroup; cursor = cursor.parent) chain.push(cursor);
+      if (!chain.length || chain[chain.length - 1].parent !== pelvisGroup) return null;
+      const matrix = new THREE.Matrix4();
+      for (let index = chain.length - 1; index >= 0; index -= 1) {
+        chain[index].updateMatrix();
+        matrix.multiply(chain[index].matrix);
+      }
+      return matrix;
+    }
+
+    function buildPointClusters(points, cellMm) {
+      const buckets = new Map();
+      for (let offset = 0; offset < points.length; offset += 3) {
+        const key = `${Math.floor(points[offset] / cellMm)},${Math.floor(points[offset + 1] / cellMm)},${Math.floor(points[offset + 2] / cellMm)}`;
+        let bucket = buckets.get(key);
+        if (!bucket) {
+          bucket = [];
+          buckets.set(key, bucket);
+        }
+        bucket.push(points[offset], points[offset + 1], points[offset + 2]);
+      }
+      const clusters = [...buckets.values()].map(values => Float64Array.from(values));
+      const boxes = new Float64Array(clusters.length * 6);
+      clusters.forEach((cluster, index) => {
+        const box = index * 6;
+        boxes.fill(Infinity, box, box + 3);
+        boxes.fill(-Infinity, box + 3, box + 6);
+        for (let offset = 0; offset < cluster.length; offset += 3) {
+          for (let axis = 0; axis < 3; axis += 1) {
+            boxes[box + axis] = Math.min(boxes[box + axis], cluster[offset + axis]);
+            boxes[box + 3 + axis] = Math.max(boxes[box + 3 + axis], cluster[offset + axis]);
+          }
+        }
+      });
+      return { clusters, boxes, bounds: new Float64Array(clusters.length) };
+    }
+
+    function nearestSquaredInCluster(cluster, x, y, z, best) {
+      for (let offset = 0; offset < cluster.length; offset += 3) {
+        const dx = x - cluster[offset];
+        const dy = y - cluster[offset + 1];
+        const dz = z - cluster[offset + 2];
+        const distance = dx * dx + dy * dy + dz * dz;
+        if (distance < best) best = distance;
+      }
+      return best;
+    }
+
+    // Exact distance to the nearest point: the cluster whose box is nearest
+    // seeds the bound, then only clusters whose box is closer are scanned.
+    function nearestClusterPointDistance(index, x, y, z) {
+      const { clusters, boxes, bounds } = index;
+      let first = -1;
+      let firstBound = Infinity;
+      for (let cluster = 0; cluster < clusters.length; cluster += 1) {
+        const box = cluster * 6;
+        const dx = x < boxes[box] ? boxes[box] - x : x > boxes[box + 3] ? x - boxes[box + 3] : 0;
+        const dy = y < boxes[box + 1] ? boxes[box + 1] - y : y > boxes[box + 4] ? y - boxes[box + 4] : 0;
+        const dz = z < boxes[box + 2] ? boxes[box + 2] - z : z > boxes[box + 5] ? z - boxes[box + 5] : 0;
+        const bound = dx * dx + dy * dy + dz * dz;
+        bounds[cluster] = bound;
+        if (bound < firstBound) {
+          firstBound = bound;
+          first = cluster;
+        }
+      }
+      if (first < 0) return Infinity;
+      let best = nearestSquaredInCluster(clusters[first], x, y, z, Infinity);
+      for (let cluster = 0; cluster < clusters.length; cluster += 1) {
+        if (cluster !== first && bounds[cluster] < best) best = nearestSquaredInCluster(clusters[cluster], x, y, z, best);
+      }
+      return Math.sqrt(best);
+    }
+
+    // Blend weight at an app-mm point of the pelvis reference frame.
+    function pelvicIncidenceWeightAt(field, x, y, z) {
+      const sacroiliacExcess = nearestClusterPointDistance(field.sacrumIndex, x, y, z) - PELVIC_INCIDENCE_FIELD.sacroiliacBandMm;
+      if (!(sacroiliacExcess > 0)) return 1;
+      let acetabularDistance = Infinity;
+      field.femoralHeadCentres.forEach(centre => {
+        acetabularDistance = Math.min(acetabularDistance, Math.hypot(x - centre.x, y - centre.y, z - centre.z));
+      });
+      const acetabularExcess = acetabularDistance - PELVIC_INCIDENCE_FIELD.acetabularZoneMm;
+      if (!(acetabularExcess > 0)) return 0;
+      const blend = acetabularExcess / (acetabularExcess + sacroiliacExcess);
+      return blend * blend * (3 - 2 * blend);
+    }
+
+    function rotatePointAboutPivotZ(point, pivot, angleRadians) {
+      const cosine = Math.cos(angleRadians);
+      const sine = Math.sin(angleRadians);
+      const dx = point.x - pivot.x;
+      const dy = point.y - pivot.y;
+      return new THREE.Vector3(pivot.x + cosine * dx - sine * dy, pivot.y + sine * dx + cosine * dy, point.z);
+    }
+
+    // toMm maps the mesh's local coordinates to the pelvis reference frame
+    // (null for the innominates, which sit untransformed in that frame).
+    function createPelvicVertexSet(field, surface, toMm, label) {
+      const geometry = surface.geometry;
+      const position = geometry.getAttribute('position');
+      const normal = geometry.getAttribute('normal') || null;
+      if (!position || position.isInterleavedBufferAttribute || normal?.isInterleavedBufferAttribute) return null;
+      const count = position.count;
+      const restMm = new Float64Array(count * 3);
+      const weights = new Float64Array(count);
+      const point = new THREE.Vector3();
+      let sacroiliacBandVertices = 0;
+      let acetabularZoneVertices = 0;
+      for (let index = 0; index < count; index += 1) {
+        point.fromBufferAttribute(position, index);
+        if (toMm) point.applyMatrix4(toMm);
+        restMm[index * 3] = point.x;
+        restMm[index * 3 + 1] = point.y;
+        restMm[index * 3 + 2] = point.z;
+        weights[index] = pelvicIncidenceWeightAt(field, point.x, point.y, point.z);
+        if (weights[index] === 1) sacroiliacBandVertices += 1;
+        else if (weights[index] === 0) acetabularZoneVertices += 1;
+      }
+      const toLocal = toMm ? toMm.clone().invert() : null;
+      let restNormalsMm = null;
+      if (toMm && normal) {
+        const normalToMm = new THREE.Matrix3().getNormalMatrix(toMm);
+        restNormalsMm = new Float64Array(count * 3);
+        for (let index = 0; index < count; index += 1) {
+          point.fromBufferAttribute(normal, index).applyMatrix3(normalToMm).normalize();
+          restNormalsMm[index * 3] = point.x;
+          restNormalsMm[index * 3 + 1] = point.y;
+          restNormalsMm[index * 3 + 2] = point.z;
+        }
+      }
+      return {
+        label, surface, geometry, position, normal, count, restMm, weights,
+        restPositions: position.array.slice(),
+        restNormals: normal ? normal.array.slice() : null,
+        restBoundingBox: geometry.boundingBox ? geometry.boundingBox.clone() : null,
+        restBoundingSphere: geometry.boundingSphere ? geometry.boundingSphere.clone() : null,
+        toLocal,
+        normalToLocal: toLocal ? new THREE.Matrix3().getNormalMatrix(toLocal) : null,
+        restNormalsMm,
+        // The closed CT surfaces get true normals; the thin tube and box
+        // overlays keep their analytic normals, rotated with the field, so
+        // their UV seams do not show.
+        recomputeNormals: !toMm,
+        sacroiliacBandVertices,
+        acetabularZoneVertices
+      };
+    }
+
+    function buildPelvicIncidenceField() {
+      const started = performance.now();
+      const unavailable = reason => ({ ready: false, id: PELVIC_INCIDENCE_FIELD.id, reason });
+      if (!pelvisGroup || !pelvisReferenceLayer?.children.length || !sacralReferenceSurface?.geometry) {
+        return unavailable('The CT pelvis reference surfaces are unavailable.');
+      }
+      const innominates = ['left', 'right'].map(side => ({
+        side, surface: pelvisReferenceLayer.getObjectByName(`ctReferenceSurface:hip_${side}`) || null
+      }));
+      const untransformed = surface => surface.position.lengthSq() === 0
+        && surface.quaternion.equals(new THREE.Quaternion())
+        && surface.scale.equals(new THREE.Vector3(1, 1, 1));
+      if (innominates.some(({ surface }) => !surface?.geometry?.getAttribute('position') || !untransformed(surface))) {
+        return unavailable('The CT innominate surfaces are missing or no longer in the source frame.');
+      }
+      const femoralHeadCentres = ['left', 'right'].map(side => referenceBoundsFor(`femur_${side}`)?.center || null);
+      if (femoralHeadCentres.some(centre => !centre)) return unavailable('The femoral-head proxies are unavailable.');
+      const referenceMatrix = pelvisRelativeMatrix(pelvisReferenceLayer);
+      if (!referenceMatrix) return unavailable('The pelvis reference frame is detached.');
+      const sacrumPosition = sacralReferenceSurface.geometry.getAttribute('position');
+      const sacrumPoints = new Float64Array(sacrumPosition.count * 3);
+      for (let index = 0; index < sacrumPosition.count; index += 1) {
+        sacrumPoints[index * 3] = sacrumPosition.getX(index) + sacralReferenceRestPosition.x;
+        sacrumPoints[index * 3 + 1] = sacrumPosition.getY(index) + sacralReferenceRestPosition.y;
+        sacrumPoints[index * 3 + 2] = sacrumPosition.getZ(index) + sacralReferenceRestPosition.z;
+      }
+      const field = {
+        ready: true,
+        id: PELVIC_INCIDENCE_FIELD.id,
+        pivot: sacralMorphologyPivotAppMm.clone(),
+        femoralHeadCentres,
+        sacrumIndex: buildPointClusters(sacrumPoints, PELVIC_INCIDENCE_FIELD.clusterCellMm),
+        referenceInverse: referenceMatrix.clone().invert(),
+        appliedAngle: 0,
+        innominateSets: [],
+        overlaySets: [],
+        updates: 0,
+        lastUpdateMs: 0,
+        maxUpdateMs: 0
+      };
+      for (const { side, surface } of innominates) {
+        const set = createPelvicVertexSet(field, surface, null, `innominate:${side}`);
+        if (!set) return unavailable(`The ${side} innominate buffers cannot be reshaped.`);
+        set.side = side;
+        field.innominateSets.push(set);
+        surface.userData = {
+          ...surface.userData,
+          pelvicIncidenceDisplayField: 'angle-blended rotation about the L5-S1 proxy; SI band moves with the sacrum, acetabular zone fixed',
+          patientSpecificMorphology: false
+        };
+      }
+      [siJointLayer, pelvisLigamentLayer].filter(Boolean).forEach(layer => layer.traverse(object => {
+        if (!object.isMesh) return;
+        const objectMatrix = pelvisRelativeMatrix(object);
+        if (!objectMatrix) return;
+        const set = createPelvicVertexSet(field, object, field.referenceInverse.clone().multiply(objectMatrix), `overlay:${object.name}`);
+        if (set) field.overlaySets.push(set);
+      }));
+      field.buildMs = performance.now() - started;
+      return field;
+    }
+
+    function ensurePelvicIncidenceField() {
+      if (!pelvicIncidenceField) pelvicIncidenceField = buildPelvicIncidenceField();
+      return pelvicIncidenceField.ready ? pelvicIncidenceField : null;
+    }
+
+    function deformPelvicVertexSet(set, angleRadians, pivot) {
+      const { geometry, position, normal, count, restMm, weights } = set;
+      const positions = position.array;
+      if (angleRadians === 0) {
+        positions.set(set.restPositions);
+        position.needsUpdate = true;
+        if (normal && set.restNormals) {
+          normal.array.set(set.restNormals);
+          normal.needsUpdate = true;
+        }
+        geometry.boundingBox = set.restBoundingBox ? set.restBoundingBox.clone() : null;
+        geometry.boundingSphere = set.restBoundingSphere ? set.restBoundingSphere.clone() : null;
+        return;
+      }
+      const normals = normal && !set.recomputeNormals ? normal.array : null;
+      const local = set.toLocal?.elements || null;
+      const normalLocal = set.normalToLocal?.elements || null;
+      for (let index = 0; index < count; index += 1) {
+        const offset = index * 3;
+        let x = restMm[offset];
+        let y = restMm[offset + 1];
+        const z = restMm[offset + 2];
+        const weight = weights[index];
+        let cosine = 1;
+        let sine = 0;
+        if (weight !== 0) {
+          const angle = weight * angleRadians;
+          cosine = Math.cos(angle);
+          sine = Math.sin(angle);
+          const dx = x - pivot.x;
+          const dy = y - pivot.y;
+          x = pivot.x + cosine * dx - sine * dy;
+          y = pivot.y + sine * dx + cosine * dy;
+        }
+        if (local) {
+          positions[offset] = local[0] * x + local[4] * y + local[8] * z + local[12];
+          positions[offset + 1] = local[1] * x + local[5] * y + local[9] * z + local[13];
+          positions[offset + 2] = local[2] * x + local[6] * y + local[10] * z + local[14];
+        } else {
+          positions[offset] = x;
+          positions[offset + 1] = y;
+          positions[offset + 2] = z;
+        }
+        if (normals && normalLocal && set.restNormalsMm) {
+          const nx0 = set.restNormalsMm[offset];
+          const ny0 = set.restNormalsMm[offset + 1];
+          const nz = set.restNormalsMm[offset + 2];
+          const nx = cosine * nx0 - sine * ny0;
+          const ny = sine * nx0 + cosine * ny0;
+          const lx = normalLocal[0] * nx + normalLocal[3] * ny + normalLocal[6] * nz;
+          const ly = normalLocal[1] * nx + normalLocal[4] * ny + normalLocal[7] * nz;
+          const lz = normalLocal[2] * nx + normalLocal[5] * ny + normalLocal[8] * nz;
+          const length = Math.hypot(lx, ly, lz) || 1;
+          normals[offset] = lx / length;
+          normals[offset + 1] = ly / length;
+          normals[offset + 2] = lz / length;
+        }
+      }
+      position.needsUpdate = true;
+      if (set.recomputeNormals) geometry.computeVertexNormals();
+      else if (normals) normal.needsUpdate = true;
+      geometry.computeBoundingBox();
+      geometry.computeBoundingSphere();
+    }
+
+    /* Pelvic implants stay rigid. Each one is anchored at its entry point,
+       moved by the field there, and re-aimed at where the field puts its
+       target, so a screw crossing the blend keeps its corridor instead of
+       bending or leaving the bone. A connector rod shares its screw's anchor
+       and target, so it stays on the screw head. */
+    function applyPelvicHardwareField(field = pelvicIncidenceField) {
+      if (!field?.ready || !pelvicHardwareLayer) return;
+      const angleRadians = field.appliedAngle;
+      pelvicHardwareLayer.children.forEach(root => root.children.forEach(implant => {
+        const data = implant.userData || {};
+        if (!Array.isArray(data.pelvicAnchorScene) || !Array.isArray(data.pelvicAimScene)) return;
+        if ((data.pelvicFieldAngle ?? 0) === angleRadians) return;
+        if (!data.pelvicRestTransform) {
+          data.pelvicRestTransform = Object.freeze({
+            position: implant.position.toArray(), quaternion: implant.quaternion.toArray(), scale: implant.scale.toArray()
+          });
+        }
+        const rest = data.pelvicRestTransform;
+        implant.position.fromArray(rest.position);
+        implant.quaternion.fromArray(rest.quaternion);
+        implant.scale.fromArray(rest.scale);
+        data.pelvicFieldAngle = angleRadians;
+        if (angleRadians === 0) return;
+        const rootMatrix = pelvisRelativeMatrix(root);
+        if (!rootMatrix) return;
+        const toMm = field.referenceInverse.clone().multiply(rootMatrix);
+        const anchor = new THREE.Vector3().fromArray(data.pelvicAnchorScene).applyMatrix4(toMm);
+        const aim = new THREE.Vector3().fromArray(data.pelvicAimScene).applyMatrix4(toMm);
+        const anchorAngle = pelvicIncidenceWeightAt(field, anchor.x, anchor.y, anchor.z) * angleRadians;
+        const aimAngle = pelvicIncidenceWeightAt(field, aim.x, aim.y, aim.z) * angleRadians;
+        const movedAnchor = rotatePointAboutPivotZ(anchor, field.pivot, anchorAngle);
+        const movedAim = rotatePointAboutPivotZ(aim, field.pivot, aimAngle);
+        const anchorRotation = new THREE.Quaternion().setFromAxisAngle(LOCAL_Z_AXIS, anchorAngle);
+        const carriedDirection = aim.clone().sub(anchor).normalize().applyQuaternion(anchorRotation);
+        const movedDirection = movedAim.clone().sub(movedAnchor).normalize();
+        const rotation = new THREE.Quaternion().setFromUnitVectors(carriedDirection, movedDirection).multiply(anchorRotation);
+        const rigid = new THREE.Matrix4().makeRotationFromQuaternion(rotation)
+          .setPosition(movedAnchor.clone().sub(anchor.clone().applyQuaternion(rotation)));
+        const restMatrix = new THREE.Matrix4().compose(implant.position, implant.quaternion, implant.scale);
+        toMm.clone().invert().multiply(rigid).multiply(toMm).multiply(restMatrix)
+          .decompose(implant.position, implant.quaternion, implant.scale);
+      }));
+    }
+
+    // Called with every applied sacral PI angle, including each damped frame.
+    function applyPelvicIncidenceField(angleRadians) {
+      const angle = finiteOr(angleRadians);
+      if (!pelvicIncidenceField && angle === 0) return false;
+      const field = ensurePelvicIncidenceField();
+      if (!field) return false;
+      const reachedTarget = angle === targetSacralMorphologyRotation;
+      if (angle !== field.appliedAngle && (angle === 0 || reachedTarget
+          || Math.abs(angle - field.appliedAngle) >= PELVIC_INCIDENCE_FIELD.updateEpsilonRad)) {
+        const started = performance.now();
+        [...field.innominateSets, ...field.overlaySets].forEach(set => deformPelvicVertexSet(set, angle, field.pivot));
+        field.appliedAngle = angle;
+        field.updates += 1;
+        field.lastUpdateMs = performance.now() - started;
+        field.maxUpdateMs = Math.max(field.maxUpdateMs, field.lastUpdateMs);
+      }
+      applyPelvicHardwareField(field);
+      return true;
+    }
+
+    function pelvicIncidenceFieldDiagnostics() {
+      const field = pelvicIncidenceField;
+      if (!field) return { built: false, ready: false, id: PELVIC_INCIDENCE_FIELD.id, ...PELVIC_INCIDENCE_FIELD };
+      if (!field.ready) return { built: true, ready: false, id: field.id, reason: field.reason };
+      const weightRange = set => {
+        let minimum = Infinity;
+        let maximum = -Infinity;
+        set.weights.forEach(weight => { minimum = Math.min(minimum, weight); maximum = Math.max(maximum, weight); });
+        return [minimum, maximum];
+      };
+      return {
+        built: true, ready: true, id: field.id,
+        sacroiliacBandMm: PELVIC_INCIDENCE_FIELD.sacroiliacBandMm,
+        acetabularZoneMm: PELVIC_INCIDENCE_FIELD.acetabularZoneMm,
+        pivotAppMm: field.pivot.toArray(),
+        femoralHeadCentresAppMm: field.femoralHeadCentres.map(centre => centre.toArray()),
+        appliedAngleDeg: THREE.MathUtils.radToDeg(field.appliedAngle),
+        updates: field.updates, buildMs: field.buildMs, lastUpdateMs: field.lastUpdateMs, maxUpdateMs: field.maxUpdateMs,
+        innominates: field.innominateSets.map(set => ({
+          side: set.side, vertices: set.count, sacroiliacBandVertices: set.sacroiliacBandVertices,
+          acetabularZoneVertices: set.acetabularZoneVertices, weightRange: weightRange(set)
+        })),
+        overlays: field.overlaySets.map(set => ({ name: set.label, vertices: set.count, weightRange: weightRange(set) }))
+      };
+    }
+
+    // App-mm image of a rest point under the field at angleRadians (tests).
+    function pelvicIncidenceFieldPoint(pointAppMm, angleRadians) {
+      const field = ensurePelvicIncidenceField();
+      if (!field || !Array.isArray(pointAppMm) || pointAppMm.length !== 3) return null;
+      const point = new THREE.Vector3().fromArray(pointAppMm);
+      const weight = pelvicIncidenceWeightAt(field, point.x, point.y, point.z);
+      return { weight, point: rotatePointAboutPivotZ(point, field.pivot, weight * finiteOr(angleRadians)).toArray() };
     }
 
     const LOWER_LIMB_FOOT_BONES = Object.freeze([
@@ -3475,6 +3912,14 @@
         catalogRevision: item.implantPlan?.catalogRevision, renderStatus: item.implantPlan?.renderStatus
       };
       if (!screw) return root;
+      // Entry point and planned target of each rigid implant, in this layer's
+      // frame; the PI display field anchors and re-aims the implant with them
+      // (applyPelvicHardwareField).
+      const anchorImplant = (implant, start, end) => {
+        if (!implant) return;
+        implant.userData.pelvicAnchorScene = start.toArray();
+        implant.userData.pelvicAimScene = end.toArray();
+      };
 
       [-1, 1].forEach(side => {
         const label = side > 0 ? 'left' : 'right';
@@ -3484,6 +3929,7 @@
           start = new THREE.Vector3(.18, .16, side * 1.32);
           end = new THREE.Vector3(-.04, .16, side * .34);
           const assembly = createCatalogScrewAssembly(start, end.clone().sub(start), screw, materials.motion, `siFusionImplant:${label}`);
+          anchorImplant(assembly, start, end);
           if (assembly) root.add(assembly);
           return;
         }
@@ -3496,6 +3942,7 @@
           end = new THREE.Vector3(-.45, -.42, side * 1.20);
         }
         const assembly = createCatalogScrewAssembly(start, end.clone().sub(start), screw, materials.screw, `${type}:${label}`);
+        anchorImplant(assembly, start, end);
         if (assembly) root.add(assembly);
         if (rod) {
           const rodDirection = new THREE.Vector3(.12, .78, -side * .08).normalize();
@@ -3512,6 +3959,7 @@
             dimensionSource: rod.dimensionSource || 'manufacturer_catalog',
             diameterMm: rod.dimensionsMm.diameter, lengthMm: rod.dimensionsMm.length, fitValidated: false
           };
+          anchorImplant(connector, start, end);
           root.add(connector);
         }
       });
@@ -3965,6 +4413,9 @@
           record.hardwareLayer.add(hardware);
         });
       }
+      // Newly built pelvic implants start in the rest pose; place them on the
+      // currently displayed PI field.
+      applyPelvicHardwareField();
       updateSurgicalVisibility();
     }
 
@@ -4223,10 +4674,13 @@
       const withheldCanalCount = [...segmentRecords.values()]
         .filter(record => record.decompressionVoid?.userData?.authoredCanalShapeWithheld).length;
       const pelvicContextWithheld = pelvisGroup?.userData?.pelvicReferenceContextWithheld === true;
+      const pelvicReshaped = pelvisGroup?.userData?.pelvicIncidenceSchematicReshaping === true;
       const integritySuffix = [
         withheldLigamentCount ? `${withheldLigamentCount} non-continuous ligament overlay${withheldLigamentCount === 1 ? '' : 's'} withheld` : '',
         withheldCanalCount ? `${withheldCanalCount} unsegmented canal edit${withheldCanalCount === 1 ? '' : 's'} withheld` : '',
-        pelvicContextWithheld ? 'innominates/SI context withheld for non-reference PI (limbs kept on the hip axis)' : ''
+        pelvicReshaped ? `pelvis shape adjusted schematically to PI ${degree(finiteOr(pelvisGroup.userData.pelvicIncidence))} (educational approximation, not patient anatomy)` : '',
+        // Only without the CT pelvis, which the PI display field needs.
+        pelvicContextWithheld ? 'schematic pelvis withheld for non-reference PI (limbs kept on the hip axis)' : ''
       ].filter(Boolean);
       const integrityStatusSuffix = integritySuffix.length ? ` · ${integritySuffix.join(' · ')}` : '';
       if (modes.length && referenceCount === modes.length) {
@@ -4585,9 +5039,13 @@
     function applyLayerVisibility() {
       const post = state.view === 'post';
       const layers = state.layers || {};
-      const pelvicIncidenceContextSafe = Math.abs(
+      const piAtReference = Math.abs(
         finiteOr(pelvisGroup?.userData?.pelvicIncidenceMorphologyDeltaDeg)
       ) < .005;
+      // Away from the atlas PI the CT hip bones and pelvic overlays are
+      // reshaped by the PI display field. Only when that field cannot be built
+      // (no CT pelvis) does the pelvic context still fail closed.
+      const pelvicContextCoherent = piAtReference || Boolean(ensurePelvicIncidenceField());
       segmentRecords.forEach(record => {
         const regionVisible = recordRegionVisible(record);
         if (record.regionVisibilityLayer) record.regionVisibilityLayer.visible = regionVisible;
@@ -4609,45 +5067,50 @@
       if (pelvisReferenceLayer) pelvisReferenceLayer.visible = pelvisVisible && pelvisReferenceLayer.children.length > 0;
       pelvisReferenceLayer?.children.forEach(surface => {
         const innominate = /^ctReferenceSurface:hip_(left|right)$/.test(surface.name);
-        surface.visible = !innominate || pelvicIncidenceContextSafe;
+        surface.visible = !innominate || pelvicContextCoherent;
       });
+      // The procedural fallback pelvis has no PI field, so it keeps the old
+      // fail-closed rule.
       if (pelvisAnatomyLayer) pelvisAnatomyLayer.visible = pelvisVisible
         && !pelvisReferenceLayer?.children.length
-        && pelvicIncidenceContextSafe;
+        && piAtReference;
       if (pelvisLigamentLayer) pelvisLigamentLayer.visible = pelvisVisible
         && layers.ligaments === true
-        && pelvicIncidenceContextSafe;
+        && pelvicContextCoherent;
       if (siJointLayer) siJointLayer.visible = pelvisVisible
         && layers.siJoints === true
-        && pelvicIncidenceContextSafe;
+        && pelvicContextCoherent;
       if (pelvicHardwareLayer) pelvicHardwareLayer.visible = pelvisVisible
         && layers.implants !== false
         && post
-        && pelvicIncidenceContextSafe;
+        && pelvicContextCoherent;
       if (pelvicIncidenceGuide) pelvicIncidenceGuide.visible = pelvisVisible && layers.measurements === true;
       if (pelvicIncidenceRadiusLine) pelvicIncidenceRadiusLine.visible = pelvisVisible && layers.measurements === true;
-      /* Lower limbs used to be withheld with the innominates at any PI other
-         than the atlas 52 deg, which also made gait unavailable. That was
-         over-broad. PI is posed by pivoting only the sacrum and spine about
-         the L5-S1 proxy; the femoral-head axis, which is where PI and PT are
-         measured to, does not move, and the lower limbs are world-rooted on
-         that same hip-axis proxy. PI = angle between the sacral-endplate
-         normal and the line from the endplate midpoint to the femoral-head
-         axis (Legaye J et al., Eur Spine J 1998;7:99-103), so the limbs stay
-         geometrically coherent with the entered PI and PT. What is NOT coherent
-         is the sacroiliac articulation (sacrum rotated against fixed ilia), so
-         the innominates, SI overlays, pelvic ligaments and pelvic hardware stay
-         withheld and the geometry chip says so. */
+      /* PI is posed by pivoting only the sacrum and spine about the L5-S1
+         proxy; the femoral-head axis, which is where PI and PT are measured
+         to, does not move, and the lower limbs are world-rooted on that same
+         hip-axis proxy. PI = angle between the sacral-endplate normal and the
+         line from the endplate midpoint to the femoral-head axis (Legaye J et
+         al., Eur Spine J 1998;7:99-103), so the limbs stay geometrically
+         coherent with the entered PI and PT. The sacroiliac articulation is
+         kept coherent by the PI display field (applyPelvicIncidenceField): the
+         hip bones are reshaped so the SI band moves with the sacrum while the
+         acetabulum stays on the femoral head. Earlier builds withheld the
+         innominates, SI overlays, pelvic ligaments and pelvic hardware here. */
       if (lowerExtremityContext) {
         lowerExtremityContext.visible = !state.inspection?.active
           && layers.lowerLimbs !== false
           && state.globalDeformity?.lowerExtremitiesVisible === true;
       }
-      pelvisGroup.userData.pelvicReferenceContextWithheld = !pelvicIncidenceContextSafe;
-      pelvisGroup.userData.lowerLimbsPosedFromHipAxisAtNonReferencePi = !pelvicIncidenceContextSafe;
-      pelvisGroup.userData.pelvicReferenceContextWithheldReason = pelvicIncidenceContextSafe
+      pelvisGroup.userData.pelvicReferenceContextWithheld = !pelvicContextCoherent;
+      pelvisGroup.userData.pelvicIncidenceSchematicReshaping = !piAtReference && pelvicContextCoherent;
+      pelvisGroup.userData.lowerLimbsPosedFromHipAxisAtNonReferencePi = !piAtReference;
+      pelvisGroup.userData.pelvicIncidenceReshapingNote = pelvisGroup.userData.pelvicIncidenceSchematicReshaping
+        ? 'The pelvis shape is adjusted schematically to the entered PI: the sacroiliac band of each hip bone moves with the sacrum and the acetabulum stays on the unchanged femoral-head axis. An educational approximation, not patient anatomy.'
+        : null;
+      pelvisGroup.userData.pelvicReferenceContextWithheldReason = pelvicContextCoherent
         ? null
-        : 'Non-reference PI is an authored sacral-base display surrogate; innominates, SI overlays, pelvic ligaments and pelvic hardware are withheld because a coherent sacroiliac articulation is unavailable. The lower limbs stay posed on the unchanged femoral-head axis that PI and PT are measured to.';
+        : 'Non-reference PI is an authored sacral-base display surrogate and the CT pelvis needed to reshape the hip bones is unavailable, so the schematic pelvis, SI overlays, pelvic ligaments and pelvic hardware are withheld. The lower limbs stay posed on the unchanged femoral-head axis that PI and PT are measured to.';
       updateReferenceLines();
     }
 
@@ -5105,7 +5568,8 @@
       );
       if (lowerExtremityContext) {
         // Not gated on PI: see applyLayerVisibility for why the limbs stay
-        // coherent at a non-reference PI while the innominates do not.
+        // coherent at a non-reference PI (the hip bones are reshaped to meet
+        // them by applyPelvicIncidenceField).
         const showLowerLimbs = deformity.lowerExtremitiesVisible
           && state.layers?.lowerLimbs !== false
           && !state.inspection?.active;
@@ -5180,9 +5644,11 @@
       const pelvicKinematics = derivePelvicKinematicTargets(state.params.pi, displayedPT, calibration);
       // PT remains a rigid posture transform of pelvis + spine about the hip-axis
       // proxy. PI is independent: it pivots only the source sacrum and the spinal
-      // chain about the L5-S1 proxy, leaving both hip bones and lower limbs fixed.
-      // This is an authored morphology display surrogate, not patient-specific
-      // sacral remodeling or an inference of SI-joint congruity.
+      // chain about the L5-S1 proxy, leaving the hip-bone transforms, hip axis and
+      // lower limbs fixed; the hip-bone surfaces are reshaped to follow the
+      // sacrum at the SI joints (applyPelvicIncidenceField). This is an authored
+      // morphology display surrogate, not patient-specific sacral remodeling or
+      // an inference of SI-joint congruity.
       targetPelvisRotation = THREE.MathUtils.degToRad(pelvicKinematics.postureDeltaDeg);
       targetSacralMorphologyRotation = THREE.MathUtils.degToRad(pelvicKinematics.morphologyDeltaDeg);
       pelvisGroup.userData.sacralSlope = pelvicKinematics.sacralSlopeDeg;

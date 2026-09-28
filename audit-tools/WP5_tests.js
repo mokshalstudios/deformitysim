@@ -69,8 +69,8 @@ async function versionAndGateFlow(browser) {
       modelCard: document.getElementById('modelCardVersion')?.textContent
     };
   })()`);
-  check(info.version === '0.23.0' && info.buildId === 'alpha-2026-09-27.1', 'model version 0.23.0 and build alpha-2026-09-27.1', JSON.stringify(info));
-  check(info.introVersion === 'v0.23.0' && info.introBuild === 'alpha-2026-09-27.1' && info.introBadge === 'Alpha' && info.headerBadge === 'Alpha' && info.modelCard === 'v0.23.0',
+  check(info.version === '0.23.1' && info.buildId === 'alpha-2026-09-28.1', 'model version 0.23.1 and build alpha-2026-09-28.1', JSON.stringify(info));
+  check(info.introVersion === 'v0.23.1' && info.introBuild === 'alpha-2026-09-28.1' && info.introBadge === 'Alpha' && info.headerBadge === 'Alpha' && info.modelCard === 'v0.23.1',
     'intro, header and model card show the Alpha build label', JSON.stringify(info));
   check(info.gate && info.gate.enabled === false && info.gate.unlocked === true && !info.gateDialog && !info.locked,
     'the launch-code gate is disabled by default and its dialog is removed', JSON.stringify(info));
@@ -177,8 +177,8 @@ async function caseFileFlow(browser) {
   try { file = JSON.parse(download.text); } catch (_) { /* reported below */ }
   check(file && download.type === 'application/json' && /^spine-case-\d{8}-\d{4}\.json$/.test(download.name || ''),
     'Save downloads a versioned JSON case file through a Blob link', JSON.stringify({ name: download.name, type: download.type }));
-  check(file && file.schema === 'deformitysim.case' && file.schemaVersion === 1 && file.app.modelVersion === '0.23.0'
-      && file.app.buildId === 'alpha-2026-09-27.1' && file.case.itinerary.length === 2 && file.case.demographics.ageYears === 67,
+  check(file && file.schema === 'deformitysim.case' && file.schemaVersion === 1 && file.app.modelVersion === '0.23.1'
+      && file.app.buildId === 'alpha-2026-09-28.1' && file.case.itinerary.length === 2 && file.case.demographics.ageYears === 67,
     'the case file carries schema, version, model build, procedures and assumptions', download.text && download.text.slice(0, 300));
   check(file && !('patientImaging' in file.case) && !/\.(jpe?g|png|dcm|dicom|webp)\b/i.test(JSON.stringify(file.case)) && !/fileName|pixels|dataUrl|blob:/i.test(JSON.stringify(file.case)),
     'the case file holds no imaging state, pixels or file names');

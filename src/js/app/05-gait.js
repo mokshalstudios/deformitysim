@@ -431,10 +431,13 @@
           ? `<span class="gait-driver gait-extrapolated">Pelvic tilt ${pt.toFixed(0)}° lies outside the published cohort span (13–24°). These figures are extrapolated beyond the source data, not interpolated within it.</span>`
           : '')
         // Gait used to be unavailable at any PI other than the atlas 52°. The
-        // limbs now walk on the unchanged femoral-head axis; say what is hidden.
-        + (pelvisGroup?.userData?.pelvicReferenceContextWithheld
-          ? `<span class="gait-driver">PI ${state.params.pi.toFixed(0)}° differs from the atlas PI (${MODEL_MANIFEST.anatomy.referencePoseCalibration.pi}°): the legs walk on the unchanged femoral-head axis that PI and PT are measured to, while the innominate bones are hidden because the sacrum no longer seats against them.</span>`
-          : '');
+        // limbs walk on the unchanged femoral-head axis; say how the pelvis is
+        // shown (withheld only when the CT pelvis is unavailable).
+        + (pelvisGroup?.userData?.pelvicIncidenceSchematicReshaping
+          ? `<span class="gait-driver">PI ${state.params.pi.toFixed(0)}° differs from the atlas PI (${MODEL_MANIFEST.anatomy.referencePoseCalibration.pi}°): the pelvis shape is adjusted schematically to the entered PI (an educational approximation, not patient anatomy), and the legs walk on the unchanged femoral-head axis that PI and PT are measured to.</span>`
+          : pelvisGroup?.userData?.pelvicReferenceContextWithheld
+            ? `<span class="gait-driver">PI ${state.params.pi.toFixed(0)}° differs from the atlas PI (${MODEL_MANIFEST.anatomy.referencePoseCalibration.pi}°): the legs walk on the unchanged femoral-head axis that PI and PT are measured to; the schematic pelvis is withheld because the CT pelvis is unavailable.</span>`
+            : '');
     }
 
     /* Re-derive the gait coupling from whatever the model currently shows.

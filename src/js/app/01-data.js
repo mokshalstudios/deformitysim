@@ -24,8 +24,8 @@
 
     const MODEL_MANIFEST = Object.freeze({
       modelId: 'spine-alignment-scenario',
-      modelVersion: '0.23.0',
-      buildId: 'alpha-2026-09-27.1',
+      modelVersion: '0.23.1',
+      buildId: 'alpha-2026-09-28.1',
       // Public release channel shown in the header and intro. The open-source
       // alpha ships without the launch-code gate (see 00-launch-gate.js).
       releaseChannel: 'alpha',
@@ -82,7 +82,7 @@
         pelvicIncidenceTransformPolicy: 'authored_sacral_base_morphology_about_l5_s1_with_fixed_hip_axis',
         pelvicOrientationTransformDriver: 'pelvic_tilt_delta_about_bicoxofemoral_proxy_plus_independent_pi_morphology_delta',
         pelvicIncidencePatientSpecific: false,
-        pelvicIncidenceGeometryDisclosure: 'display_surrogate rotates source sacrum and spine about the L5-S1 proxy; SI, pelvic-ligament, pelvic-hardware and innominate context fail closed while non-reference PI is displayed'
+        pelvicIncidenceGeometryDisclosure: 'display_surrogate rotates source sacrum and spine about the L5-S1 proxy; away from the atlas PI the innominates, SI overlays and pelvic ligaments are reshaped schematically by an angle-blended field about the same pivot (sacroiliac band moves with the sacrum, acetabular zone fixed on the femoral-head axis) and pelvic hardware follows it rigidly; educational approximation, not patient anatomy; fails closed only without the CT pelvis'
       }),
       mechanics: Object.freeze({
         status: 'locked_pending_verification_and_validation',

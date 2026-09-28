@@ -135,6 +135,10 @@
       getPelvicIncidenceGuide: () => pelvicIncidenceGuide,
       getPelvicIncidenceRadiusLine: () => pelvicIncidenceRadiusLine,
       getPelvisReferenceLayer: () => pelvisReferenceLayer,
+      // PI display field of the hip bones (v0.23.1): build and update
+      // diagnostics, and the field image of an app-mm rest point.
+      getPelvicIncidenceField: () => pelvicIncidenceFieldDiagnostics(),
+      pelvicIncidenceFieldPoint,
       getPelvicHardware: () => pelvicHardwareLayer,
       getSIJoints: () => siJointLayer,
       getPelvicLigaments: () => pelvisLigamentLayer,
